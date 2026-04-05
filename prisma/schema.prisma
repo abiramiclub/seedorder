@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Caches soil + climate API responses per zip code (30-day TTL)
+model ZipCache {
+  zipCode    String   @id
+  locationJson  String   @db.Text  // ZipLocation JSON
+  soilJson      String   @db.Text  // SoilProfile JSON
+  climateJson   String   @db.Text  // ClimateProfile JSON
+  hardinessJson String   @db.Text  // HardinessZone JSON
+  fetchedAt  DateTime
+  expiresAt  DateTime
+
+  @@index([expiresAt])
+}
+
+// Caches plant profile data (conservation, photos, medicinal, recipes)
+model PlantProfileCache {
+  plantId    String   @id   // USDA PLANTS symbol
+  profileJson String  @db.Text
+  fetchedAt  DateTime
+  expiresAt  DateTime
+
+  @@index([expiresAt])
+}
+
+// Saved garden plans per user session
+model GardenPlan {
+  id          String   @id @default(cuid())
+  zipCode     String
+  planJson    String   @db.Text  // full GardenPlan JSON
+  createdAt   DateTime @default(now())
+  confirmedAt DateTime?
+
+  orders SeedOrder[]
+
+  @@index([zipCode])
+}
+
+// Seed orders linked to a confirmed garden plan
+model SeedOrder {
+  id           String   @id @default(cuid())
+  gardenPlanId String
+  zipCode      String
+  budget       Float
+  orderJson    String   @db.Text  // full SeedOrder JSON
+  createdAt    DateTime @default(now())
+
+  gardenPlan GardenPlan @relation(fields: [gardenPlanId], references: [id])
+
+  @@index([gardenPlanId])
+}
