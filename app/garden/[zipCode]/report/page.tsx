@@ -59,19 +59,20 @@ export default async function ReportPage({ params }: ReportPageProps): Promise<R
     );
   }
 
-  // Fetch remaining data independently — failures show as unavailable, not errors
-  const [hardinessZone, soil, climate] = await Promise.all([
-    fetchHardinessZone(location.lat, location.lng, zipCode).catch((err) => {
+  // Climate first — hardiness zone is derived from winter minimum temperature
+  const climate = await fetchClimateData(location.lat, location.lng).catch((err) => {
+    console.error('Climate data error:', err);
+    return FALLBACK_CLIMATE;
+  });
+
+  const [hardinessZone, soil] = await Promise.all([
+    fetchHardinessZone(location.lat, location.lng, zipCode, climate.hardinessZone).catch((err) => {
       console.error('Hardiness zone error:', err);
       return FALLBACK_ZONE;
     }),
     fetchSoilData(location.lat, location.lng).catch((err) => {
       console.error('Soil data error:', err);
       return FALLBACK_SOIL;
-    }),
-    fetchClimateData(location.lat, location.lng).catch((err) => {
-      console.error('Climate data error:', err);
-      return FALLBACK_CLIMATE;
     }),
   ]);
 

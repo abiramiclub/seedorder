@@ -25,10 +25,15 @@ export default async function PlanPage({ params }: PlanPageProps): Promise<React
 
   try {
     const location = await geocodeZip(zipCode);
-    const [hardinessZone, soil, climate] = await Promise.all([
-      fetchHardinessZone(location.lat, location.lng, zipCode),
+    const climate = await fetchClimateData(location.lat, location.lng).catch(() => ({
+      annualPrecipitation: 0, avgSummerTemp: 75, avgWinterTemp: 30,
+      lastFrostDate: 'April 15', firstFrostDate: 'October 15',
+      growingSeasonDays: 180, hardinessZone: undefined,
+      climateChangeProjection: { tempIncrease2050: 2.2, precipChangePercent: 3, droughtRiskLevel: 'moderate' as const, source: '' },
+    }));
+    const [hardinessZone, soil] = await Promise.all([
+      fetchHardinessZone(location.lat, location.lng, zipCode, climate.hardinessZone).catch(() => ({ zone: 'Unknown', tMin: -99, tMax: 99 })),
       fetchSoilData(location.lat, location.lng).catch(() => ({ mapUnitName: '', texture: '', pH: 6.5, organicMatter: 0, drainageClass: '', components: [] })),
-      fetchClimateData(location.lat, location.lng).catch(() => ({ annualPrecipitation: 0, avgSummerTemp: 0, avgWinterTemp: 0, lastFrostDate: '', firstFrostDate: '', growingSeasonDays: 0, climateChangeProjection: { tempIncrease2050: 0, precipChangePercent: 0, droughtRiskLevel: 'moderate' as const, source: '' } })),
     ]);
 
     const report = { location, hardinessZone, soil, climate };

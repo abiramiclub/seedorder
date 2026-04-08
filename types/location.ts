@@ -37,6 +37,7 @@ export interface ClimateProfile {
   firstFrostDate: string;        // e.g. "November 10"
   growingSeasonDays: number;
   climateChangeProjection: ClimateProjection;
+  hardinessZone?: string;        // derived from absolute winter minimum
 }
 
 export interface ClimateProjection {
