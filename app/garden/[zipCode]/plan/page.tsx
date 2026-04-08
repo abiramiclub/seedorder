@@ -1,7 +1,12 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import type { GardenPlan, PlantRecommendation } from '@/types/plants';
-import type { LocationReport } from '@/types/location';
+import { geocodeZip } from '@/lib/apis/census';
+import { fetchHardinessZone } from '@/lib/apis/hardiness';
+import { fetchSoilData } from '@/lib/apis/usda-soil';
+import { fetchClimateData } from '@/lib/apis/noaa';
+import { generateGardenPlan } from '@/lib/ai/recommend';
+import { prisma } from '@/lib/utils/prisma';
+import type { PlantRecommendation } from '@/types/plants';
 
 interface PlanPageProps {
   params: Promise<{ zipCode: string }>;
@@ -14,28 +19,23 @@ const CATEGORY_LABELS: Record<string, string> = {
   bushesAndTrees: 'Bushes & Trees',
 };
 
-async function fetchPlan(zip: string): Promise<GardenPlan & { id: string }> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
-
-  const reportRes = await fetch(`${baseUrl}/api/location?zip=${zip}`, { cache: 'force-cache' });
-  if (!reportRes.ok) notFound();
-  const report = await reportRes.json() as LocationReport;
-
-  const planRes = await fetch(`${baseUrl}/api/recommend`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ report }),
-    cache: 'no-store',
-  });
-  if (!planRes.ok) notFound();
-  return planRes.json() as Promise<GardenPlan & { id: string }>;
-}
-
 export default async function PlanPage({ params }: PlanPageProps): Promise<React.JSX.Element> {
   const { zipCode } = await params;
   if (!/^\d{5}$/.test(zipCode)) notFound();
 
-  const plan = await fetchPlan(zipCode);
+  const location = await geocodeZip(zipCode);
+  const [hardinessZone, soil, climate] = await Promise.all([
+    fetchHardinessZone(location.lat, location.lng),
+    fetchSoilData(location.lat, location.lng),
+    fetchClimateData(location.lat, location.lng),
+  ]);
+
+  const report = { location, hardinessZone, soil, climate };
+  const plan = await generateGardenPlan(report);
+
+  const saved = await prisma.gardenPlan.create({
+    data: { zipCode, planJson: JSON.stringify(plan) },
+  });
 
   const sections = [
     { key: 'vegetables', plants: plan.vegetables },
@@ -88,7 +88,7 @@ export default async function PlanPage({ params }: PlanPageProps): Promise<React
       )}
 
       <Link
-        href={`/garden/${zipCode}/order?planId=${plan.id}`}
+        href={`/garden/${zipCode}/order?planId=${saved.id}`}
         className="block w-full text-center py-4 rounded-2xl bg-green-700 hover:bg-green-600 text-white font-semibold text-lg transition-colors"
       >
         Confirm Selection &amp; Order Seeds

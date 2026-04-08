@@ -1,23 +1,38 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { geocodeZip } from '@/lib/apis/census';
+import { fetchHardinessZone } from '@/lib/apis/hardiness';
+import { fetchSoilData } from '@/lib/apis/usda-soil';
+import { fetchClimateData } from '@/lib/apis/noaa';
 import type { LocationReport } from '@/types/location';
 
 interface ReportPageProps {
   params: Promise<{ zipCode: string }>;
 }
 
-async function fetchReport(zip: string): Promise<LocationReport> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
-  const res = await fetch(`${baseUrl}/api/location?zip=${zip}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to fetch location data');
-  return res.json() as Promise<LocationReport>;
-}
-
 export default async function ReportPage({ params }: ReportPageProps): Promise<React.JSX.Element> {
   const { zipCode } = await params;
   if (!/^\d{5}$/.test(zipCode)) notFound();
 
-  const report = await fetchReport(zipCode);
+  let report: LocationReport;
+  try {
+    const location = await geocodeZip(zipCode);
+    const [hardinessZone, soil, climate] = await Promise.all([
+      fetchHardinessZone(location.lat, location.lng),
+      fetchSoilData(location.lat, location.lng),
+      fetchClimateData(location.lat, location.lng),
+    ]);
+    report = { location, hardinessZone, soil, climate };
+  } catch (err) {
+    console.error('Failed to load location data:', err);
+    return (
+      <main className="min-h-screen bg-stone-50 px-4 py-10 max-w-2xl mx-auto">
+        <p className="text-red-600">Could not load data for zip code {zipCode}. Please try again.</p>
+        <Link href="/" className="text-green-700 underline mt-4 block">Go back</Link>
+      </main>
+    );
+  }
+
   const { location, hardinessZone, soil, climate } = report;
 
   return (

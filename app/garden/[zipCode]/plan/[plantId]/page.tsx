@@ -1,24 +1,30 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { PlantProfile } from '@/types/plant-profile';
+import { fetchPlantPhotos } from '@/lib/apis/inaturalist';
+import { fetchWikimediaPhotos } from '@/lib/apis/wikimedia';
+import { fetchConservationStatus } from '@/lib/apis/natureserve';
+import { fetchIUCNStatus } from '@/lib/apis/iucn';
+import { fetchEdibleUses } from '@/lib/apis/trefle';
+import { buildMedicinalPrompt } from '@/lib/ai/prompts/medicinal';
+import { buildRecipePrompt } from '@/lib/ai/prompts/recipes';
+import Anthropic from '@anthropic-ai/sdk';
+import type { ConservationStatus, MedicinalUse, Recipe } from '@/types/plant-profile';
 
 interface PlantProfilePageProps {
   params: Promise<{ zipCode: string; plantId: string }>;
   searchParams: Promise<{ commonName?: string; scientificName?: string; stateCode?: string }>;
 }
 
-async function fetchProfile(
-  plantId: string,
-  commonName: string,
-  scientificName: string,
-  stateCode: string
-): Promise<PlantProfile> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
-  const params = new URLSearchParams({ commonName, scientificName, stateCode });
-  const res = await fetch(`${baseUrl}/api/plant/${plantId}?${params}`, { cache: 'force-cache' });
-  if (!res.ok) notFound();
-  return res.json() as Promise<PlantProfile>;
+const client = new Anthropic();
+
+async function callClaude(prompt: string): Promise<string> {
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2048,
+    messages: [{ role: 'user', content: prompt }],
+  });
+  return message.content[0].type === 'text' ? message.content[0].text : '[]';
 }
 
 export default async function PlantProfilePage({
@@ -28,8 +34,40 @@ export default async function PlantProfilePage({
   const { zipCode, plantId } = await params;
   const { commonName = '', scientificName = '', stateCode = '' } = await searchParams;
 
-  const profile = await fetchProfile(plantId, commonName, scientificName, stateCode);
-  const { conservationStatus: cs } = profile;
+  if (!commonName || !scientificName) notFound();
+
+  const [iNatPhotos, wikiPhotos, natureServeData, iucnData, edibleParts] = await Promise.all([
+    fetchPlantPhotos(scientificName).catch(() => []),
+    fetchWikimediaPhotos(scientificName).catch(() => []),
+    fetchConservationStatus(scientificName).catch(() => null),
+    fetchIUCNStatus(scientificName).catch(() => null),
+    fetchEdibleUses(scientificName).catch(() => []),
+  ]);
+
+  const photos = iNatPhotos.length > 0 ? iNatPhotos : wikiPhotos;
+
+  const conservationStatus: ConservationStatus = {
+    natureServeRank: natureServeData?.natureServeRank ?? 'GNR',
+    natureServeLabel: natureServeData?.natureServeLabel ?? 'Not Ranked',
+    iucnCategory: iucnData?.category ?? 'NE',
+    iucnLabel: iucnData?.label ?? 'Not Evaluated',
+    isEndemicToRegion: false,
+    populationTrend: 'unknown',
+    threats: natureServeData?.threats ?? [],
+    source: 'NatureServe',
+    sourceUrl: `https://explorer.natureserve.org`,
+  };
+
+  const [medicinalText, recipeText, uniqueText] = await Promise.all([
+    callClaude(buildMedicinalPrompt(commonName, scientificName)),
+    edibleParts.length > 0
+      ? callClaude(buildRecipePrompt(commonName, scientificName, edibleParts, 'summer', stateCode))
+      : Promise.resolve('[]'),
+    callClaude(`In 2-3 vivid sentences, describe what makes ${commonName} (${scientificName}) ecologically unique. Focus on adaptations, wildlife relationships, and what sets it apart from non-native alternatives. Return only the description text.`),
+  ]);
+
+  const medicinalUses = JSON.parse(medicinalText) as MedicinalUse[];
+  const recipes = recipeText !== '[]' ? JSON.parse(recipeText) as Recipe[] : [];
 
   return (
     <main className="min-h-screen bg-stone-50 px-4 py-10 max-w-2xl mx-auto space-y-8">
@@ -42,10 +80,9 @@ export default async function PlantProfilePage({
         <p className="text-stone-400 italic mt-1">{scientificName}</p>
       </div>
 
-      {/* Photos */}
-      {profile.photos.length > 0 && (
+      {photos.length > 0 && (
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {profile.photos.slice(0, 4).map((photo, i) => (
+          {photos.slice(0, 4).map((photo, i) => (
             <div key={i} className="flex-shrink-0">
               <Image
                 src={photo.thumbnailUrl}
@@ -60,45 +97,37 @@ export default async function PlantProfilePage({
         </div>
       )}
 
-      {/* What makes it unique */}
       <section className="bg-white rounded-2xl border border-stone-200 p-5">
         <h2 className="font-semibold text-stone-800 mb-2">What Makes It Special</h2>
-        <p className="text-stone-600 text-sm leading-relaxed">{profile.whatMakesItUnique}</p>
+        <p className="text-stone-600 text-sm leading-relaxed">{uniqueText}</p>
       </section>
 
-      {/* Conservation status */}
       <section className="bg-white rounded-2xl border border-stone-200 p-5 space-y-3">
         <h2 className="font-semibold text-stone-800">Conservation Status</h2>
         <div className="flex gap-3 flex-wrap">
-          <StatusBadge label={`NatureServe: ${cs.natureServeRank}`} sublabel={cs.natureServeLabel} />
-          <StatusBadge label={`IUCN: ${cs.iucnCategory}`} sublabel={cs.iucnLabel} />
+          <StatusBadge label={`NatureServe: ${conservationStatus.natureServeRank}`} sublabel={conservationStatus.natureServeLabel} />
+          <StatusBadge label={`IUCN: ${conservationStatus.iucnCategory}`} sublabel={conservationStatus.iucnLabel} />
         </div>
-        {cs.threats.length > 0 && (
-          <div>
-            <p className="text-stone-500 text-xs uppercase tracking-wide mb-1">Known Threats</p>
-            <ul className="text-stone-600 text-sm space-y-0.5">
-              {cs.threats.map((t, i) => <li key={i}>&bull; {t}</li>)}
-            </ul>
-          </div>
+        {conservationStatus.threats.length > 0 && (
+          <ul className="text-stone-600 text-sm space-y-0.5">
+            {conservationStatus.threats.map((t, i) => <li key={i}>&bull; {t}</li>)}
+          </ul>
         )}
-        <p className="text-stone-400 text-xs">Source: {cs.source}</p>
       </section>
 
-      {/* Edible uses */}
-      {profile.edibleUses.length > 0 && (
+      {edibleParts.length > 0 && (
         <section className="bg-white rounded-2xl border border-stone-200 p-5 space-y-2">
           <h2 className="font-semibold text-stone-800">Edible Uses</h2>
           <ul className="text-stone-600 text-sm space-y-1">
-            {profile.edibleUses.map((use, i) => <li key={i}>&bull; {use}</li>)}
+            {edibleParts.map((use, i) => <li key={i}>&bull; {use}</li>)}
           </ul>
         </section>
       )}
 
-      {/* Medicinal uses */}
-      {profile.medicinalUses.length > 0 && (
+      {medicinalUses.length > 0 && (
         <section className="bg-amber-50 rounded-2xl border border-amber-200 p-5 space-y-4">
           <h2 className="font-semibold text-amber-900">Medicinal Uses</h2>
-          {profile.medicinalUses.map((use, i) => (
+          {medicinalUses.map((use, i) => (
             <div key={i} className="space-y-1">
               <p className="text-amber-800 font-medium text-sm">{use.partUsed} — {use.traditionalUse}</p>
               <p className="text-amber-700 text-sm">{use.preparationMethod}</p>
@@ -108,11 +137,10 @@ export default async function PlantProfilePage({
         </section>
       )}
 
-      {/* Recipes */}
-      {profile.recipes.length > 0 && (
+      {recipes.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-stone-800">Recipes</h2>
-          {profile.recipes.map((recipe, i) => (
+          {recipes.map((recipe, i) => (
             <div key={i} className="bg-white rounded-2xl border border-stone-200 p-5 space-y-3">
               <h3 className="font-semibold text-stone-900">{recipe.name}</h3>
               <p className="text-stone-500 text-sm">{recipe.season} &middot; Uses: {recipe.partUsed}</p>
