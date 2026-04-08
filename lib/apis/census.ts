@@ -1,82 +1,6 @@
 import type { ZipLocation } from '@/types/location';
 
-const BASE_URL = 'https://geocoding.geo.census.gov/geocoder/locations';
-
 export async function geocodeZip(zip: string): Promise<ZipLocation> {
-  // Use structured address endpoint with zip only — more reliable than onelineaddress
-  const params = new URLSearchParams({
-    street: '',
-    city: '',
-    state: '',
-    zip,
-    benchmark: 'Public_AR_Current',
-    format: 'json',
-  });
-
-  const res = await fetch(`${BASE_URL}/address?${params}`);
-  if (!res.ok) throw new Error(`Census geocoder error: ${res.status}`);
-
-  const data = await res.json();
-  const matches: unknown[] = data?.result?.addressMatches;
-
-  if (!matches || matches.length === 0) {
-    // Fallback: try zip + USA as a one-line address
-    return geocodeZipFallback(zip);
-  }
-
-  const match = matches[0] as {
-    coordinates: { x: number; y: number };
-    addressComponents: {
-      city: string;
-      state: string;
-      zip: string;
-    };
-  };
-
-  return {
-    zipCode: zip,
-    lat: match.coordinates.y,
-    lng: match.coordinates.x,
-    city: match.addressComponents.city ?? '',
-    state: match.addressComponents.state ?? '',
-    stateCode: match.addressComponents.state ?? '',
-  };
-}
-
-async function geocodeZipFallback(zip: string): Promise<ZipLocation> {
-  const params = new URLSearchParams({
-    address: `${zip}, USA`,
-    benchmark: 'Public_AR_Current',
-    format: 'json',
-  });
-
-  const res = await fetch(`${BASE_URL}/onelineaddress?${params}`);
-  if (!res.ok) throw new Error(`Census geocoder error: ${res.status}`);
-
-  const data = await res.json();
-  const matches: unknown[] = data?.result?.addressMatches;
-
-  if (!matches || matches.length === 0) {
-    // Last resort: use Nominatim (OpenStreetMap) — no key required
-    return geocodeZipNominatim(zip);
-  }
-
-  const match = matches[0] as {
-    coordinates: { x: number; y: number };
-    addressComponents: { city: string; state: string };
-  };
-
-  return {
-    zipCode: zip,
-    lat: match.coordinates.y,
-    lng: match.coordinates.x,
-    city: match.addressComponents.city ?? '',
-    state: match.addressComponents.state ?? '',
-    stateCode: match.addressComponents.state ?? '',
-  };
-}
-
-async function geocodeZipNominatim(zip: string): Promise<ZipLocation> {
   const params = new URLSearchParams({
     postalcode: zip,
     country: 'US',
@@ -89,7 +13,7 @@ async function geocodeZipNominatim(zip: string): Promise<ZipLocation> {
     { headers: { 'User-Agent': 'NativeSeed/1.0' } }
   );
 
-  if (!res.ok) throw new Error(`Nominatim geocoder error: ${res.status}`);
+  if (!res.ok) throw new Error(`Geocoder error: ${res.status}`);
 
   const data = await res.json() as Array<{
     lat: string;
@@ -102,7 +26,7 @@ async function geocodeZipNominatim(zip: string): Promise<ZipLocation> {
   }
 
   const result = data[0];
-  // display_name format: "Cold Spring, Putnam County, New York, 10516, United States"
+  // display_name: "Cold Spring, Putnam County, New York, 10516, United States"
   const parts = result.display_name.split(', ');
   const city = parts[0] ?? '';
   const state = parts[2] ?? '';
@@ -113,6 +37,26 @@ async function geocodeZipNominatim(zip: string): Promise<ZipLocation> {
     lng: parseFloat(result.lon),
     city,
     state,
-    stateCode: state,
+    stateCode: stateNameToCode(state),
   };
+}
+
+// Converts full state name to 2-letter code for USDA PLANTS API
+function stateNameToCode(name: string): string {
+  const map: Record<string, string> = {
+    'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
+    'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
+    'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
+    'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
+    'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+    'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
+    'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
+    'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
+    'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
+    'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+    'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
+    'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
+    'Wisconsin': 'WI', 'Wyoming': 'WY',
+  };
+  return map[name] ?? name;
 }
