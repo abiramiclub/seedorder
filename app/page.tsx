@@ -24,9 +24,10 @@ export default function HomePage(): React.JSX.Element {
         <div className="space-y-3">
           <h1 className="text-5xl font-bold text-green-100 tracking-tight">NativeSeed</h1>
           <p className="text-lg text-stone-300">
-            Enter your zip code. Get a personalized native plant garden plan
+            Enter your US zip code. Get a personalized native plant garden plan
             — with soil data, climate projections, and seeds ordered for you.
           </p>
+          <p className="text-sm text-stone-500">US addresses only</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
@@ -34,7 +35,7 @@ export default function HomePage(): React.JSX.Element {
             type="text"
             value={zip}
             onChange={(e) => setZip(e.target.value.replace(/\D/g, '').slice(0, 5))}
-            placeholder="Enter zip code"
+            placeholder="Enter USA zip code"
             maxLength={5}
             className="flex-1 px-5 py-3 rounded-xl bg-stone-800 text-stone-100 placeholder-stone-500 border border-stone-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-lg"
           />
