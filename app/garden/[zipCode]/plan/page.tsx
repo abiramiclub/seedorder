@@ -23,15 +23,16 @@ export default async function PlanPage({ params }: PlanPageProps): Promise<React
   const { zipCode } = await params;
   if (!/^\d{5}$/.test(zipCode)) notFound();
 
-  const location = await geocodeZip(zipCode);
-  const [hardinessZone, soil, climate] = await Promise.all([
-    fetchHardinessZone(location.lat, location.lng),
-    fetchSoilData(location.lat, location.lng),
-    fetchClimateData(location.lat, location.lng),
-  ]);
+  try {
+    const location = await geocodeZip(zipCode);
+    const [hardinessZone, soil, climate] = await Promise.all([
+      fetchHardinessZone(location.lat, location.lng, zipCode),
+      fetchSoilData(location.lat, location.lng).catch(() => ({ mapUnitName: '', texture: '', pH: 6.5, organicMatter: 0, drainageClass: '', components: [] })),
+      fetchClimateData(location.lat, location.lng).catch(() => ({ annualPrecipitation: 0, avgSummerTemp: 0, avgWinterTemp: 0, lastFrostDate: '', firstFrostDate: '', growingSeasonDays: 0, climateChangeProjection: { tempIncrease2050: 0, precipChangePercent: 0, droughtRiskLevel: 'moderate' as const, source: '' } })),
+    ]);
 
-  const report = { location, hardinessZone, soil, climate };
-  const plan = await generateGardenPlan(report);
+    const report = { location, hardinessZone, soil, climate };
+    const plan = await generateGardenPlan(report);
 
   const saved = await prisma.gardenPlan.create({
     data: { zipCode, planJson: JSON.stringify(plan) },
@@ -95,6 +96,17 @@ export default async function PlanPage({ params }: PlanPageProps): Promise<React
       </Link>
     </main>
   );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Plan page error:', message);
+    return (
+      <main className="min-h-screen bg-stone-50 px-4 py-10 max-w-2xl mx-auto space-y-4">
+        <h1 className="text-2xl font-bold text-stone-900">Could not generate garden plan</h1>
+        <p className="text-red-600 text-sm font-mono bg-red-50 p-3 rounded-lg">{message}</p>
+        <Link href={`/garden/${zipCode}/report`} className="text-green-700 underline block">Go back to report</Link>
+      </main>
+    );
+  }
 }
 
 interface PlantCardProps {

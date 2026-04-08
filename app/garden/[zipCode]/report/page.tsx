@@ -61,7 +61,7 @@ export default async function ReportPage({ params }: ReportPageProps): Promise<R
 
   // Fetch remaining data independently — failures show as unavailable, not errors
   const [hardinessZone, soil, climate] = await Promise.all([
-    fetchHardinessZone(location.lat, location.lng).catch((err) => {
+    fetchHardinessZone(location.lat, location.lng, zipCode).catch((err) => {
       console.error('Hardiness zone error:', err);
       return FALLBACK_ZONE;
     }),
