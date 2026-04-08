@@ -1,60 +1,84 @@
-import type { SoilProfile, SoilComponent } from '@/types/location';
+import type { SoilProfile } from '@/types/location';
 
-const SDA_URL = 'https://SDMDataAccess.nrcs.usda.gov/Tabular/post.rest';
+// SoilGrids by ISRIC — free, no API key, global coverage, very reliable
+// Docs: https://rest.isric.org/soilgrids/v2.0/docs
 
 export async function fetchSoilData(lat: number, lng: number): Promise<SoilProfile> {
-  // Step 1: get map unit key from coordinates
-  const mukeyQuery = `SELECT mukey FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('point(${lng} ${lat})')`;
+  const url = new URL('https://rest.isric.org/soilgrids/v2.0/properties/query');
+  url.searchParams.set('lon', String(lng));
+  url.searchParams.set('lat', String(lat));
+  // pH, organic carbon, clay, sand, silt at 0-5cm depth
+  url.searchParams.append('property', 'phh2o');
+  url.searchParams.append('property', 'ocd');
+  url.searchParams.append('property', 'clay');
+  url.searchParams.append('property', 'sand');
+  url.searchParams.append('property', 'silt');
+  url.searchParams.append('depth', '0-5cm');
+  url.searchParams.append('value', 'mean');
 
-  const mukeyRes = await fetch(SDA_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ query: mukeyQuery, format: 'JSON' }),
-  });
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`SoilGrids error: ${res.status}`);
 
-  if (!mukeyRes.ok) throw new Error(`USDA soil mukey lookup error: ${mukeyRes.status}`);
+  const data = await res.json() as {
+    properties: {
+      layers: Array<{
+        name: string;
+        depths: Array<{
+          values: { mean: number | null };
+        }>;
+      }>;
+    };
+  };
 
-  const mukeyData = await mukeyRes.json() as { Table?: string[][] };
-  const mukey = mukeyData?.Table?.[0]?.[0];
-  if (!mukey) throw new Error('No soil map unit found for this location');
+  const layers = data?.properties?.layers ?? [];
 
-  // Step 2: get soil components for this map unit
-  const soilQuery = `
-    SELECT mu.muname, c.compname, c.comppct_r, c.texdesc, c.ph1to1h2o_r, c.om_r, c.drainagecl
-    FROM mapunit mu
-    INNER JOIN component c ON c.mukey = mu.mukey
-    WHERE mu.mukey = '${mukey}'
-    ORDER BY c.comppct_r DESC
-  `;
+  function getValue(name: string): number {
+    const layer = layers.find((l) => l.name === name);
+    return layer?.depths?.[0]?.values?.mean ?? 0;
+  }
 
-  const soilRes = await fetch(SDA_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ query: soilQuery, format: 'JSON' }),
-  });
+  // SoilGrids units: pH × 10, OCD in dg/kg, clay/sand/silt in g/kg
+  const phRaw = getValue('phh2o');
+  const ocdRaw = getValue('ocd');
+  const clayRaw = getValue('clay');
+  const sandRaw = getValue('sand');
+  const siltRaw = getValue('silt');
 
-  if (!soilRes.ok) throw new Error(`USDA soil detail error: ${soilRes.status}`);
+  const pH = phRaw > 0 ? phRaw / 10 : 6.5;
+  const organicMatter = ocdRaw > 0 ? Math.round((ocdRaw / 100) * 10) / 10 : 0;
+  const clayPct = Math.round(clayRaw / 10);
+  const sandPct = Math.round(sandRaw / 10);
+  const siltPct = Math.round(siltRaw / 10);
 
-  const soilData = await soilRes.json() as { Table?: string[][] };
-  const rows = soilData?.Table ?? [];
-
-  if (rows.length === 0) throw new Error('No soil component data found');
-
-  const components: SoilComponent[] = rows.map((row) => ({
-    name: String(row[1] ?? ''),
-    percentage: Number(row[2] ?? 0),
-    texture: String(row[3] ?? 'Unknown'),
-    pH: Number(row[4] ?? 7.0),
-  }));
-
-  const primary = components[0];
+  const texture = deriveTexture(sandPct, siltPct, clayPct);
+  const drainage = deriveDrainage(clayPct, sandPct);
 
   return {
-    mapUnitName: String(rows[0]?.[0] ?? 'Unknown'),
-    texture: primary?.texture ?? 'Unknown',
-    pH: primary?.pH ?? 7.0,
-    organicMatter: Number(rows[0]?.[5] ?? 0),
-    drainageClass: String(rows[0]?.[6] ?? 'Unknown'),
-    components,
+    mapUnitName: `Soil at ${lat.toFixed(3)}, ${lng.toFixed(3)}`,
+    texture,
+    pH: Math.round(pH * 10) / 10,
+    organicMatter,
+    drainageClass: drainage,
+    components: [
+      { name: 'Clay', percentage: clayPct, texture, pH },
+      { name: 'Sand', percentage: sandPct, texture, pH },
+      { name: 'Silt', percentage: siltPct, texture, pH },
+    ],
   };
+}
+
+function deriveTexture(sand: number, silt: number, clay: number): string {
+  if (clay >= 40) return 'Clay';
+  if (clay >= 27 && sand <= 45) return 'Clay Loam';
+  if (sand >= 70 && clay < 15) return 'Sandy Loam';
+  if (silt >= 80) return 'Silt';
+  if (silt >= 50 && clay < 27) return 'Silt Loam';
+  return 'Loam';
+}
+
+function deriveDrainage(clay: number, sand: number): string {
+  if (clay >= 40) return 'Poorly drained';
+  if (clay >= 27) return 'Moderately well drained';
+  if (sand >= 70) return 'Excessively drained';
+  return 'Well drained';
 }
