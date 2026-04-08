@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { generateGardenPlan } from '@/lib/ai/recommend';
 import { prisma } from '@/lib/utils/prisma';

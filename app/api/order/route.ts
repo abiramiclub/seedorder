@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { fillCarts } from '@/lib/automation/cart-filler';
 import { prisma } from '@/lib/utils/prisma';

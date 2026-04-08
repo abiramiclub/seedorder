@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { geocodeZip } from '@/lib/apis/census';
 import { fetchHardinessZone } from '@/lib/apis/hardiness';

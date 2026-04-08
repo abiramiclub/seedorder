@@ -1,8 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist } from 'next/font/google';
 import './globals.css';
-
-const geist = Geist({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'NativeSeed — Grow Native, Grow Local',
@@ -17,7 +14,7 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps): React.JSX.Element {
   return (
     <html lang="en">
-      <body className={`${geist.className} bg-stone-50 text-stone-900 antialiased`}>
+      <body className="bg-stone-50 text-stone-900 antialiased font-sans">
         {children}
       </body>
     </html>
