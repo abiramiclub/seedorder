@@ -4,36 +4,76 @@ import { geocodeZip } from '@/lib/apis/census';
 import { fetchHardinessZone } from '@/lib/apis/hardiness';
 import { fetchSoilData } from '@/lib/apis/usda-soil';
 import { fetchClimateData } from '@/lib/apis/noaa';
-import type { LocationReport } from '@/types/location';
+import type { HardinessZone, SoilProfile, ClimateProfile } from '@/types/location';
 
 interface ReportPageProps {
   params: Promise<{ zipCode: string }>;
 }
 
+const FALLBACK_SOIL: SoilProfile = {
+  mapUnitName: 'Data unavailable',
+  texture: 'Unknown',
+  pH: 0,
+  organicMatter: 0,
+  drainageClass: 'Unknown',
+  components: [],
+};
+
+const FALLBACK_CLIMATE: ClimateProfile = {
+  annualPrecipitation: 0,
+  avgSummerTemp: 0,
+  avgWinterTemp: 0,
+  lastFrostDate: 'Unknown',
+  firstFrostDate: 'Unknown',
+  growingSeasonDays: 0,
+  climateChangeProjection: {
+    tempIncrease2050: 0,
+    precipChangePercent: 0,
+    droughtRiskLevel: 'moderate',
+    source: 'Data unavailable',
+  },
+};
+
+const FALLBACK_ZONE: HardinessZone = {
+  zone: 'Unknown',
+  tMin: 0,
+  tMax: 0,
+};
+
 export default async function ReportPage({ params }: ReportPageProps): Promise<React.JSX.Element> {
   const { zipCode } = await params;
   if (!/^\d{5}$/.test(zipCode)) notFound();
 
-  let report: LocationReport;
+  // Geocode first — this must succeed
+  let location;
   try {
-    const location = await geocodeZip(zipCode);
-    const [hardinessZone, soil, climate] = await Promise.all([
-      fetchHardinessZone(location.lat, location.lng),
-      fetchSoilData(location.lat, location.lng),
-      fetchClimateData(location.lat, location.lng),
-    ]);
-    report = { location, hardinessZone, soil, climate };
+    location = await geocodeZip(zipCode);
   } catch (err) {
-    console.error('Failed to load location data:', err);
+    const message = err instanceof Error ? err.message : String(err);
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-10 max-w-2xl mx-auto">
-        <p className="text-red-600">Could not load data for zip code {zipCode}. Please try again.</p>
-        <Link href="/" className="text-green-700 underline mt-4 block">Go back</Link>
+      <main className="min-h-screen bg-stone-50 px-4 py-10 max-w-2xl mx-auto space-y-4">
+        <h1 className="text-2xl font-bold text-stone-900">Could not find zip code {zipCode}</h1>
+        <p className="text-red-600 text-sm font-mono bg-red-50 p-3 rounded-lg">{message}</p>
+        <Link href="/" className="text-green-700 underline block">Go back</Link>
       </main>
     );
   }
 
-  const { location, hardinessZone, soil, climate } = report;
+  // Fetch remaining data independently — failures show as unavailable, not errors
+  const [hardinessZone, soil, climate] = await Promise.all([
+    fetchHardinessZone(location.lat, location.lng).catch((err) => {
+      console.error('Hardiness zone error:', err);
+      return FALLBACK_ZONE;
+    }),
+    fetchSoilData(location.lat, location.lng).catch((err) => {
+      console.error('Soil data error:', err);
+      return FALLBACK_SOIL;
+    }),
+    fetchClimateData(location.lat, location.lng).catch((err) => {
+      console.error('Climate data error:', err);
+      return FALLBACK_CLIMATE;
+    }),
+  ]);
 
   return (
     <main className="min-h-screen bg-stone-50 px-4 py-10 max-w-2xl mx-auto space-y-8">
@@ -47,40 +87,50 @@ export default async function ReportPage({ params }: ReportPageProps): Promise<R
 
       <section className="bg-white rounded-2xl border border-stone-200 p-6 space-y-3">
         <h2 className="font-semibold text-stone-800 text-lg">Soil</h2>
-        <dl className="grid grid-cols-2 gap-3 text-sm">
-          <DataPoint label="Type" value={soil.mapUnitName} />
-          <DataPoint label="Texture" value={soil.texture} />
-          <DataPoint label="pH" value={String(soil.pH)} />
-          <DataPoint label="Organic Matter" value={`${soil.organicMatter}%`} />
-          <DataPoint label="Drainage" value={soil.drainageClass} />
-        </dl>
+        {soil.mapUnitName === 'Data unavailable' ? (
+          <p className="text-stone-400 text-sm">Soil data could not be loaded for this location.</p>
+        ) : (
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <DataPoint label="Type" value={soil.mapUnitName} />
+            <DataPoint label="Texture" value={soil.texture} />
+            <DataPoint label="pH" value={String(soil.pH)} />
+            <DataPoint label="Organic Matter" value={`${soil.organicMatter}%`} />
+            <DataPoint label="Drainage" value={soil.drainageClass} />
+          </dl>
+        )}
       </section>
 
       <section className="bg-white rounded-2xl border border-stone-200 p-6 space-y-3">
         <h2 className="font-semibold text-stone-800 text-lg">Climate</h2>
-        <dl className="grid grid-cols-2 gap-3 text-sm">
-          <DataPoint label="Annual Rain" value={`${climate.annualPrecipitation}"`} />
-          <DataPoint label="Summer Avg" value={`${climate.avgSummerTemp}°F`} />
-          <DataPoint label="Winter Avg" value={`${climate.avgWinterTemp}°F`} />
-          <DataPoint label="Growing Season" value={`${climate.growingSeasonDays} days`} />
-          <DataPoint label="Last Frost" value={climate.lastFrostDate} />
-          <DataPoint label="First Frost" value={climate.firstFrostDate} />
-        </dl>
+        {climate.annualPrecipitation === 0 ? (
+          <p className="text-stone-400 text-sm">Climate data could not be loaded for this location.</p>
+        ) : (
+          <dl className="grid grid-cols-2 gap-3 text-sm">
+            <DataPoint label="Annual Rain" value={`${climate.annualPrecipitation}"`} />
+            <DataPoint label="Summer Avg" value={`${climate.avgSummerTemp}°F`} />
+            <DataPoint label="Winter Avg" value={`${climate.avgWinterTemp}°F`} />
+            <DataPoint label="Growing Season" value={`${climate.growingSeasonDays} days`} />
+            <DataPoint label="Last Frost" value={climate.lastFrostDate} />
+            <DataPoint label="First Frost" value={climate.firstFrostDate} />
+          </dl>
+        )}
       </section>
 
-      <section className="bg-amber-50 rounded-2xl border border-amber-200 p-6 space-y-2">
-        <h2 className="font-semibold text-amber-900 text-lg">Climate Outlook 2050</h2>
-        <p className="text-amber-800 text-sm">
-          Projected +{climate.climateChangeProjection.tempIncrease2050}°F warming &middot;{' '}
-          {climate.climateChangeProjection.precipChangePercent > 0 ? '+' : ''}
-          {climate.climateChangeProjection.precipChangePercent}% precipitation &middot;{' '}
-          Drought risk:{' '}
-          <span className="font-medium capitalize">
-            {climate.climateChangeProjection.droughtRiskLevel}
-          </span>
-        </p>
-        <p className="text-amber-700 text-xs">Source: {climate.climateChangeProjection.source}</p>
-      </section>
+      {climate.climateChangeProjection.source !== 'Data unavailable' && (
+        <section className="bg-amber-50 rounded-2xl border border-amber-200 p-6 space-y-2">
+          <h2 className="font-semibold text-amber-900 text-lg">Climate Outlook 2050</h2>
+          <p className="text-amber-800 text-sm">
+            Projected +{climate.climateChangeProjection.tempIncrease2050}°F warming &middot;{' '}
+            {climate.climateChangeProjection.precipChangePercent > 0 ? '+' : ''}
+            {climate.climateChangeProjection.precipChangePercent}% precipitation &middot;{' '}
+            Drought risk:{' '}
+            <span className="font-medium capitalize">
+              {climate.climateChangeProjection.droughtRiskLevel}
+            </span>
+          </p>
+          <p className="text-amber-700 text-xs">Source: {climate.climateChangeProjection.source}</p>
+        </section>
+      )}
 
       <Link
         href={`/garden/${zipCode}/plan`}
