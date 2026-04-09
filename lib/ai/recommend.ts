@@ -46,7 +46,14 @@ async function getRecommendationsForCategory(
   });
 
   const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-  return JSON.parse(stripJsonFences(raw)) as PlantRecommendation[];
+  const stripped = stripJsonFences(raw);
+  console.log(`[recommend] category=${category} stop_reason=${message.stop_reason} chars=${raw.length} stripped_start=${stripped.slice(0, 120)}`);
+  const parsed = JSON.parse(stripped);
+  if (!Array.isArray(parsed)) {
+    console.error(`[recommend] expected array, got ${typeof parsed}:`, stripped.slice(0, 300));
+    return [];
+  }
+  return parsed as PlantRecommendation[];
 }
 
 async function generateDesignCombinations(

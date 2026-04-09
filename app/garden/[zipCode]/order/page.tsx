@@ -38,7 +38,6 @@ export default function OrderPage({ params }: OrderPageProps): React.JSX.Element
           gardenPlanId: planId,
           budget: Number(budget),
           zipCode,
-          confirmedPlants: [],  // populated from confirmed plan in production
         }),
       });
 
