@@ -1,10 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { LocationReport } from '@/types/location';
 import type { PlantCategory, PlantRecommendation, GardenPlan, GardenDesignCombination } from '@/types/plants';
-import { fetchNativePlants } from '@/lib/apis/usda-plants';
 import { buildPlantRecommendationPrompt } from '@/lib/ai/prompts/plants';
 import { buildGardenDesignPrompt } from '@/lib/ai/prompts/garden-design';
-import { MAX_PLANT_RECOMMENDATIONS } from '@/types/plants';
 
 const client = new Anthropic();
 const MODEL = 'claude-sonnet-4-6';
@@ -39,10 +37,7 @@ async function getRecommendationsForCategory(
   report: LocationReport,
   category: PlantCategory
 ): Promise<PlantRecommendation[]> {
-  const candidates = await fetchNativePlants(report.location.stateCode, category);
-  const topCandidates = candidates.slice(0, MAX_PLANT_RECOMMENDATIONS * 4);
-
-  const prompt = buildPlantRecommendationPrompt(report, category, topCandidates);
+  const prompt = buildPlantRecommendationPrompt(report, category);
 
   const message = await client.messages.create({
     model: MODEL,

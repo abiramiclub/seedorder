@@ -1,10 +1,16 @@
 import type { LocationReport } from '@/types/location';
 import type { PlantCategory } from '@/types/plants';
 
+const CATEGORY_DESCRIPTIONS: Record<PlantCategory, string> = {
+  vegetables: 'edible native plants — wild greens, roots, berries, or seed crops traditionally eaten by indigenous peoples of this region',
+  herbs: 'native aromatic or medicinal herbs — plants used traditionally for culinary flavoring, teas, or medicine',
+  flowers: 'native flowering plants and decorative grasses — must be pollinator-friendly and excellent for honey bees',
+  'bushes-and-trees': 'native shrubs and trees — woody plants that provide habitat, food for wildlife, and year-round structure',
+};
+
 export function buildPlantRecommendationPrompt(
   report: LocationReport,
-  category: PlantCategory,
-  candidatePlants: Array<{ commonName: string; scientificName: string; usdaSymbol: string }>
+  category: PlantCategory
 ): string {
   const { location, hardinessZone, soil, climate } = report;
 
@@ -28,13 +34,11 @@ export function buildPlantRecommendationPrompt(
 - Avg winter temp: ${climate.avgWinterTemp}°F
 - Growing season: ${climate.growingSeasonDays} days
 - Last frost: ${climate.lastFrostDate} | First frost: ${climate.firstFrostDate}
-- Climate projection (2050): +${climate.climateChangeProjection.tempIncrease2050}°F,
-  precipitation ${climate.climateChangeProjection.precipChangePercent > 0 ? '+' : ''}${climate.climateChangeProjection.precipChangePercent}%,
-  drought risk: ${climate.climateChangeProjection.droughtRiskLevel}
+- Climate projection (2050): +${climate.climateChangeProjection.tempIncrease2050}°F, precipitation ${climate.climateChangeProjection.precipChangePercent > 0 ? '+' : ''}${climate.climateChangeProjection.precipChangePercent}%, drought risk: ${climate.climateChangeProjection.droughtRiskLevel}
 
 ## Task
-From the USDA-verified native plant candidates below, select the BEST 5 plants
-for the category: **${category}**.
+Recommend exactly 5 native plants for the category: **${category}**
+Category definition: ${CATEGORY_DESCRIPTIONS[category]}
 
 ${category === 'flowers' ? `
 IMPORTANT: All flower selections must be:
@@ -43,22 +47,24 @@ IMPORTANT: All flower selections must be:
 - Include at least one plant that blooms in each season (spring, summer, fall)
 ` : ''}
 
-## Candidate Plants (USDA verified native to this region)
-${candidatePlants.map((p, i) => `${i + 1}. ${p.commonName} (${p.scientificName}) — USDA: ${p.usdaSymbol}`).join('\n')}
-
-## Rules
-- Only recommend plants from the candidate list above
-- Every plant must be native to this region and suitable for zone ${hardinessZone.zone}
+## Requirements
+- Every plant MUST be genuinely native to ${location.stateCode} (verified in USDA PLANTS database)
+- Every plant MUST be suitable for USDA hardiness zone ${hardinessZone.zone}
 - Factor in the soil pH (${soil.pH}), drainage (${soil.drainageClass}), and climate change trajectory
 - Never recommend a plant with toxic parts without flagging hasToxicParts: true
+- Choose plants that are well-known, widely available as seeds, and practical for a home gardener
+- Use the plant's USDA PLANTS symbol (e.g. "VIAM" for Viola americana)
 
 ## Response Format
 Return a JSON array of exactly 5 objects. Each object:
 {
   "usdaSymbol": string,
+  "id": string (same as usdaSymbol, lowercase),
   "commonName": string,
   "scientificName": string,
   "category": "${category}",
+  "nativeRegions": ["${location.stateCode}"],
+  "hardinessZones": string[] (list of compatible zones, e.g. ["5a","5b","6a","6b"]),
   "description": string (2-3 sentences, vivid and educational),
   "ecologicalRole": string (what it does for the local ecosystem),
   "pollinatorValue": "low" | "moderate" | "high" | "exceptional",
