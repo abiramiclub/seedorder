@@ -9,8 +9,16 @@ import { MAX_PLANT_RECOMMENDATIONS } from '@/types/plants';
 const client = new Anthropic();
 const MODEL = 'claude-sonnet-4-6';
 
-function stripJsonFences(raw: string): string {
-  return raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
+function extractJsonArray(raw: string): unknown[] {
+  // Strip code fences first
+  const stripped = raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
+  // If it starts with [, parse directly
+  if (stripped.startsWith('[')) return JSON.parse(stripped) as unknown[];
+  // Search for a JSON array anywhere in the text (handles prose + JSON responses)
+  const match = stripped.match(/(\[[\s\S]*\])/);
+  if (match) return JSON.parse(match[1]) as unknown[];
+  // Claude returned pure prose with no JSON — return empty array
+  return [];
 }
 
 const CATEGORIES: PlantCategory[] = ['vegetables', 'herbs', 'flowers', 'bushes-and-trees'];
@@ -42,6 +50,8 @@ async function getRecommendationsForCategory(
   const candidates = await fetchNativePlants(report.location.stateCode, category);
   const topCandidates = candidates.slice(0, MAX_PLANT_RECOMMENDATIONS * 4);
 
+  if (topCandidates.length === 0) return [];
+
   const prompt = buildPlantRecommendationPrompt(report, category, topCandidates);
 
   const message = await client.messages.create({
@@ -51,7 +61,7 @@ async function getRecommendationsForCategory(
   });
 
   const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-  return JSON.parse(stripJsonFences(raw)) as PlantRecommendation[];
+  return extractJsonArray(raw) as PlantRecommendation[];
 }
 
 async function generateDesignCombinations(
@@ -67,5 +77,5 @@ async function generateDesignCombinations(
   });
 
   const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-  return JSON.parse(stripJsonFences(raw)) as GardenDesignCombination[];
+  return extractJsonArray(raw) as GardenDesignCombination[];
 }
