@@ -95,5 +95,6 @@ async function callClaude(prompt: string): Promise<string> {
     max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   });
-  return message.content[0].type === 'text' ? message.content[0].text : '[]';
+  const raw = message.content[0].type === 'text' ? message.content[0].text : '[]';
+  return raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
 }
