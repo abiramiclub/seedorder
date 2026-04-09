@@ -79,5 +79,5 @@ Return a JSON array of exactly 5 objects. Each object:
   }
 }
 
-Return only the JSON array, no other text.`;
+Return ONLY the raw JSON array. No markdown, no code fences, no explanation — just the JSON.`;
 }

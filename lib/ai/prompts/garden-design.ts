@@ -31,5 +31,5 @@ Return a JSON array of exactly 3 objects:
   "companionBenefits": string (ecological and companion planting benefits)
 }
 
-Return only the JSON array, no other text.`;
+Return ONLY the raw JSON array. No markdown, no code fences, no explanation — just the JSON.`;
 }

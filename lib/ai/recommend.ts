@@ -9,6 +9,10 @@ import { MAX_PLANT_RECOMMENDATIONS } from '@/types/plants';
 const client = new Anthropic();
 const MODEL = 'claude-sonnet-4-6';
 
+function stripJsonFences(raw: string): string {
+  return raw.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
+}
+
 const CATEGORIES: PlantCategory[] = ['vegetables', 'herbs', 'flowers', 'bushes-and-trees'];
 
 export async function generateGardenPlan(report: LocationReport): Promise<Omit<GardenPlan, 'id' | 'createdAt'>> {
@@ -46,8 +50,8 @@ async function getRecommendationsForCategory(
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const text = message.content[0].type === 'text' ? message.content[0].text : '';
-  return JSON.parse(text) as PlantRecommendation[];
+  const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+  return JSON.parse(stripJsonFences(raw)) as PlantRecommendation[];
 }
 
 async function generateDesignCombinations(
@@ -62,6 +66,6 @@ async function generateDesignCombinations(
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const text = message.content[0].type === 'text' ? message.content[0].text : '';
-  return JSON.parse(text) as GardenDesignCombination[];
+  const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+  return JSON.parse(stripJsonFences(raw)) as GardenDesignCombination[];
 }
