@@ -41,7 +41,7 @@ async function getRecommendationsForCategory(
 
   const message = await client.messages.create({
     model: MODEL,
-    max_tokens: 4096,
+    max_tokens: 8096,
     messages: [{ role: 'user', content: prompt }],
   });
 
