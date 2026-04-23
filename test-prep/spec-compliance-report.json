@@ -1,0 +1,141 @@
+{
+  "audit_date": "2026-04-23",
+  "repo": "abiramiclub/seedorder",
+  "branch": "claude/create-test-prep-project-tdjF0",
+  "1_folder_structure": {
+    "test-prep/SKILL.md": "EXISTS",
+    "test-prep/template/quiz-template.html": "EXISTS",
+    "test-prep/certifications/nca-aiio/blueprint.md": "EXISTS",
+    "test-prep/certifications/nca-aiio/questions.json": "EXISTS \u2014 v1 schema (missing learning science fields)",
+    "test-prep/certifications/nca-aiio/questions-v2.json": "EXISTS \u2014 v2 schema (all learning science fields present)",
+    "test-prep/certifications/nca-aiio/concepts.json": "EXISTS",
+    "test-prep/certifications/nca-aiio/confusable_pairs.json": "EXISTS",
+    "test-prep/certifications/nca-aiio/mnemonics.json": "EXISTS",
+    "test-prep/scripts/new-cert.md": "EXISTS",
+    "NOTE_naming_gap": "Spec expects 'questions.json' with v2 fields. Currently: questions.json=v1 (no new fields), questions-v2.json=v2 (has new fields). Canonical file should be renamed or merged."
+  },
+  "2_question_bank": {
+    "source_file_checked": "questions-v2.json",
+    "total_questions": 20,
+    "questions_missing_any_required_field": {
+      "count": 0,
+      "detail": []
+    },
+    "v1_questions_json_missing_new_fields": {
+      "count": 20,
+      "note": "All 20 questions in questions.json (v1) are missing all 8 new learning science fields"
+    },
+    "bloom_level_breakdown": {
+      "understand": 11,
+      "remember": 4,
+      "analyze": 1,
+      "apply": 4
+    },
+    "question_type_breakdown": {
+      "definition": 14,
+      "discrimination": 2,
+      "use_case": 4
+    },
+    "domain_breakdown": {
+      "1": 8,
+      "2": 7,
+      "3": 5
+    },
+    "objectives_covered": {
+      "1.2": 2,
+      "1.3": 1,
+      "1.4": 1,
+      "1.5": 2,
+      "1.8": 2,
+      "2.1": 1,
+      "2.2": 1,
+      "2.3": 2,
+      "2.4": 1,
+      "2.5": 1,
+      "2.6": 1,
+      "3.1": 1,
+      "3.2": 1,
+      "3.3": 1,
+      "3.4": 1,
+      "3.6": 1
+    },
+    "objectives_with_zero_questions": [
+      "1.1",
+      "1.6",
+      "1.7",
+      "2.7",
+      "2.8",
+      "3.5"
+    ],
+    "coverage_note": "6 of 22 objectives have zero questions: 1.1, 1.6, 1.7, 2.7, 2.8, 3.5"
+  },
+  "3_template": {
+    "file": "test-prep/template/quiz-template.html",
+    "result": "PARAMETERIZED",
+    "evidence": "EXAM_CONFIG contains placeholder strings ('EXAM-CODE', 'Exam Full Title', generic domain names). JS engine reads cfg.name, cfg.title, cfg.timerMinutes, cfg.passingPct, cfg.domains dynamically. HTML body has no hardcoded cert content \u2014 all populated from EXAM_CONFIG+QUESTIONS at runtime.",
+    "cert_specific_quiz": "certifications/nca-aiio/quiz.html has NCA-AIIO values hardcoded \u2014 expected (it IS the instantiated cert file, not the template)"
+  },
+  "4_session_modes": {
+    "learning_mode_immediate_feedback_interleaved": {
+      "status": "PARTIAL",
+      "note": "Current quiz.html shows immediate per-question feedback after submit. No explicit mode concept, no UI to select mode, no interleaving logic."
+    },
+    "exam_simulation_no_feedback_60min": {
+      "status": "MISSING",
+      "note": "Not implemented. Only one mode exists: per-question feedback always shown."
+    },
+    "targeted_drill_user_picks_concept_or_domain": {
+      "status": "MISSING",
+      "note": "Not implemented. No domain/concept filter UI."
+    },
+    "spaced_review_due_for_review_concepts": {
+      "status": "MISSING",
+      "note": "Not implemented. No localStorage state, no review scheduling."
+    },
+    "diagnostic_20q_baseline": {
+      "status": "MISSING",
+      "note": "Not implemented. No diagnostic mode or adaptive baseline logic."
+    },
+    "overall": "quiz-v2.html (planned Phase 2 file) has NOT been written yet. All 5 modes are planned but unimplemented."
+  },
+  "5_memory_layer": {
+    "memory_strength_float_0_to_1": "NOT YET",
+    "last_tested_date": "NOT YET",
+    "next_review_date": "NOT YET",
+    "storage_mechanism": "NOT YET \u2014 no localStorage usage found in any HTML file",
+    "status": "NOT YET",
+    "note": "Requires quiz-v2.html to be written (SM-2 forgetting curve engine planned but not implemented)"
+  },
+  "6_confidence_calibration": {
+    "status": "NOT YET",
+    "note": "No 'how confident are you?' prompt before answer reveal found in any code. Planned for quiz-v2.html."
+  },
+  "7_adaptive_selection": {
+    "result": "SEQUENTIAL",
+    "description": "questions = QUESTIONS.slice() then questions[currentIdx++]. Fixed array order, no randomization, no weighting, no spaced repetition.",
+    "planned": "FULLY_ADAPTIVE (SM-2 forgetting curve + confusion history + review urgency weighting) \u2014 planned for quiz-v2.html"
+  },
+  "8_git_status": {
+    "log_last_10": [
+      "d197daf feat(nca-aiio): add learning science data layer for Phase 2 cognitive engine",
+      "5778455 feat: merge WS-A engine + WS-B NCA-AIIO content into unified test-prep skill",
+      "c4c3820 fix: move /generate-quiz skill to project root .claude/commands/",
+      "8805e17 feat: scaffold TestPrep \u2014 AI-powered interactive quiz project",
+      "993a6d0 Fix order API (load plants from DB) and add recommendation diagnostics",
+      "8514031 Increase max_tokens to 8096 to fix truncated JSON response",
+      "a5bef77 Fix empty plant recommendations \u2014 remove broken USDA Plants API dependency",
+      "b179ad2 Fix Claude API response parsing \u2014 strip markdown code fences before JSON.parse",
+      "638e867 Replace USDA soil with SoilGrids (ISRIC) -- fixes 400 error",
+      "e4343b2 Replace failing APIs with reliable alternatives"
+    ],
+    "remote": "origin http://127.0.0.1:33275/git/abiramiclub/seedorder (fetch/push)",
+    "status": "clean \u2014 nothing to commit, working tree clean"
+  },
+  "summary": {
+    "phase_1_data_files": "COMPLETE \u2014 concepts.json, confusable_pairs.json, mnemonics.json, questions-v2.json all exist and are well-formed",
+    "phase_2_engine": "NOT STARTED \u2014 quiz-v2.html not yet written; session modes, memory layer, confidence calibration, adaptive selection all pending",
+    "blocking_gap": "questions.json (v1) and questions-v2.json coexist with different schemas; spec expects a single canonical questions.json with v2 fields",
+    "objectives_gap": "6 objectives uncovered: 1.1, 1.6, 1.7, 2.7, 2.8, 3.5",
+    "question_count_gap": "20 of 50 target questions written (40% complete)"
+  }
+}
