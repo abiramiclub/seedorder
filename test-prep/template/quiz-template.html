@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Practice Quiz</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --border: #475569; --text: #f1f5f9; --muted: #94a3b8;
+    --accent: #6366f1; --accent-h: #818cf8;
+    --ok: #10b981; --warn: #f59e0b; --err: #ef4444;
+  }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 1.5rem 1rem; }
+  #app { width: 100%; max-width: 760px; }
+
+  /* ── Shared ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; padding: 2rem; }
+  .btn { display: inline-flex; align-items: center; gap: .5rem; padding: .65rem 1.4rem;
+    border-radius: .6rem; border: none; font-size: .95rem; font-weight: 600;
+    cursor: pointer; transition: opacity .15s, background .15s; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:not(:disabled):hover { background: var(--accent-h); }
+  .btn-secondary { background: var(--surface2); color: var(--text); }
+  .btn-secondary:not(:disabled):hover { background: var(--border); }
+  .tag { display: inline-block; padding: .2rem .6rem; border-radius: 99px;
+    font-size: .72rem; font-weight: 600; letter-spacing: .03em; }
+
+  /* ── Start screen ── */
+  #screen-start { text-align: center; padding: 3rem 2rem; }
+  #screen-start h1 { font-size: 2rem; margin-bottom: .5rem; }
+  #screen-start .subtitle { color: var(--muted); margin-bottom: 2rem; }
+  .domain-list { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-bottom: 2rem; }
+  .domain-chip { padding: .35rem .8rem; border-radius: .4rem; font-size: .8rem; font-weight: 600;
+    color: #0f172a; }
+  .meta-row { display: flex; gap: 1.5rem; justify-content: center; margin-bottom: 2rem;
+    color: var(--muted); font-size: .9rem; }
+
+  /* ── Quiz screen ── */
+  #screen-quiz { display: none; }
+  .quiz-header { display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 1.2rem; }
+  .q-counter { font-size: .85rem; color: var(--muted); }
+  .q-counter strong { color: var(--text); font-size: 1rem; }
+  .timer-wrap { text-align: right; }
+  .timer-digits { font-family: monospace; font-size: 1.5rem; font-weight: 700; }
+  .timer-bar-outer { width: 7rem; height: 4px; background: var(--surface2); border-radius: 99px; margin-top: 4px; }
+  .timer-bar-inner { height: 100%; border-radius: 99px; transition: width 1s linear, background .5s; }
+  .progress-bar { width: 100%; height: 3px; background: var(--surface2); border-radius: 99px;
+    margin-bottom: 1.2rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
+  .q-meta { display: flex; gap: .4rem; margin-bottom: 1rem; }
+  .q-text { font-size: 1.05rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .options { display: grid; gap: .65rem; }
+  .opt-btn { width: 100%; text-align: left; padding: 1rem 1.2rem; border-radius: .7rem;
+    border: 1.5px solid var(--border); background: var(--surface); color: var(--text);
+    font-size: .95rem; cursor: pointer; transition: border-color .15s, background .15s; }
+  .opt-btn:not(:disabled):hover { border-color: var(--accent); background: #1e1b4b; }
+  .opt-btn.selected { border-color: var(--accent); background: #1e1b4b; }
+  .opt-btn:disabled { cursor: not-allowed; }
+  .opt-btn.correct { border-color: var(--ok); background: #064e3b; }
+  .opt-btn.wrong   { border-color: var(--err); background: #450a0a; }
+  .opt-letter { font-weight: 700; color: var(--accent); margin-right: .5rem; }
+  .submit-row { display: flex; justify-content: flex-end; margin-top: 1.2rem; }
+
+  /* ── Feedback ── */
+  .feedback { margin-top: 1.2rem; border-radius: .8rem; padding: 1.2rem 1.4rem; border: 1px solid; }
+  .feedback.correct { border-color: var(--ok); background: #022c22; }
+  .feedback.wrong   { border-color: var(--err); background: #1c0a0a; }
+  .feedback-header { display: flex; align-items: center; gap: .6rem; font-weight: 700;
+    font-size: 1rem; margin-bottom: .6rem; }
+  .feedback.correct .feedback-header { color: var(--ok); }
+  .feedback.wrong   .feedback-header { color: var(--err); }
+  .feedback-exp { font-size: .9rem; line-height: 1.65; color: #cbd5e1; }
+  .trick-badge { display: inline-flex; align-items: center; gap: .3rem; margin-top: .8rem;
+    padding: .25rem .6rem; border-radius: .4rem; background: #1e1b4b; color: #a5b4fc;
+    font-size: .75rem; font-weight: 600; }
+  .next-row { display: flex; justify-content: flex-end; margin-top: 1rem; }
+
+  /* ── Results screen ── */
+  #screen-results { display: none; }
+  .score-hero { text-align: center; padding: 2rem 0 1.5rem; }
+  .score-pct { font-size: 4rem; font-weight: 900; }
+  .score-pct.pass { color: var(--ok); }
+  .score-pct.fail { color: var(--err); }
+  .score-pct.near { color: var(--warn); }
+  .score-sub { color: var(--muted); margin-top: .3rem; }
+  .verdict { font-size: 1.1rem; font-weight: 700; margin-top: .5rem; }
+  .verdict.pass { color: var(--ok); }
+  .verdict.fail { color: var(--err); }
+  .domain-breakdown { margin: 1.5rem 0; }
+  .domain-breakdown h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin-bottom: .8rem; }
+  .domain-row { display: flex; align-items: center; gap: .8rem; margin-bottom: .6rem; }
+  .domain-name { font-size: .85rem; width: 13rem; flex-shrink: 0; }
+  .domain-bar-outer { flex: 1; height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .domain-bar-inner { height: 100%; border-radius: 99px; transition: width .6s ease-out; }
+  .domain-score-label { font-size: .8rem; color: var(--muted); width: 3.5rem; text-align: right; }
+  .review-section { margin-top: 1.5rem; }
+  .review-section h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin-bottom: .8rem; }
+  .review-item { border: 1px solid var(--border); border-radius: .7rem; padding: 1rem 1.2rem;
+    margin-bottom: .7rem; }
+  .review-item.correct { border-left: 3px solid var(--ok); }
+  .review-item.wrong   { border-left: 3px solid var(--err); }
+  .review-q { font-size: .9rem; color: var(--muted); margin-bottom: .4rem; }
+  .review-answer { font-size: .85rem; margin-bottom: .3rem; }
+  .review-exp { font-size: .82rem; color: var(--muted); line-height: 1.55; }
+  .results-actions { display: flex; gap: .75rem; justify-content: center; margin-top: 2rem; }
+
+  .hidden { display: none !important; }
+  @media (max-width: 480px) {
+    .domain-name { width: 8rem; font-size: .78rem; }
+    .card { padding: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     EXAM CONFIGURATION — edit the values in this block per cert.
+     Do not modify anything below the closing }; of EXAM_CONFIG.
+═══════════════════════════════════════════════════════════════ -->
+<script>
+const EXAM_CONFIG = {
+  name: "EXAM-CODE",
+  title: "Exam Full Title",
+  timerMinutes: 30,
+  passingPct: 70,
+  domains: [
+    { id: 1, label: "Domain One",   weight: 50, color: "#4db3ff" },
+    { id: 2, label: "Domain Two",   weight: 30, color: "#76b900" },
+    { id: 3, label: "Domain Three", weight: 20, color: "#e8a020" }
+  ]
+};
+
+// ── Question bank ─────────────────────────────────────────────
+// Replace this array with your questions.
+// Each object must match engine/question-schema.json.
+// 'correct' is a 0-based index into 'options'.
+const QUESTIONS = [
+  {
+    id: "template-q001",
+    cert: "template",
+    domain: 1,
+    objective: "1.1",
+    difficulty: "associate",
+    question: "This is a sample question. Replace QUESTIONS array with real data.",
+    options: [
+      "Sample option A",
+      "Sample option B (correct)",
+      "Sample option C",
+      "Sample option D"
+    ],
+    correct: 1,
+    explanation: "Option B is correct because this is a template. Replace this with real questions.",
+    trick: "No trap — placeholder question.",
+    trick_pattern: "none",
+    tags: ["sample"],
+    source: "Template",
+    timeLimitSeconds: 60
+  }
+];
+</script>
+
+<!-- ════════════════════════════════════════════════════════════
+     QUIZ ENGINE — do not modify below this line
+════════════════════════════════════════════════════════════ -->
+
+<!-- Start screen -->
+<div id="screen-start">
+  <div class="card">
+    <h1 id="start-title"></h1>
+    <p class="subtitle" id="start-name"></p>
+    <div class="meta-row">
+      <span id="meta-questions"></span>
+      <span id="meta-timer"></span>
+      <span id="meta-passing"></span>
+    </div>
+    <div class="domain-list" id="domain-chips"></div>
+    <button class="btn btn-primary" id="btn-start" style="font-size:1.05rem;padding:.8rem 2rem;">
+      Start Practice Exam
+    </button>
+  </div>
+</div>
+
+<!-- Quiz screen -->
+<div id="screen-quiz" class="card" style="margin-top:.5rem;">
+  <div class="quiz-header">
+    <div>
+      <div class="q-counter"><strong id="q-num"></strong> <span id="q-total"></span></div>
+    </div>
+    <div class="timer-wrap">
+      <div class="timer-digits" id="timer-display">1:00</div>
+      <div class="timer-bar-outer"><div class="timer-bar-inner" id="timer-bar"></div></div>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="q-meta" id="q-meta"></div>
+  <div class="q-text" id="q-text"></div>
+  <div class="options" id="options"></div>
+  <div class="submit-row">
+    <button class="btn btn-primary" id="btn-submit" disabled>Submit Answer</button>
+  </div>
+  <div id="feedback-block" class="hidden"></div>
+  <div class="next-row hidden" id="next-row">
+    <button class="btn btn-primary" id="btn-next">Next →</button>
+  </div>
+</div>
+
+<!-- Results screen -->
+<div id="screen-results" class="card" style="margin-top:.5rem;">
+  <div class="score-hero">
+    <div class="score-pct" id="score-pct"></div>
+    <div class="score-sub" id="score-sub"></div>
+    <div class="verdict" id="verdict"></div>
+  </div>
+  <div class="domain-breakdown">
+    <h3>Domain Breakdown</h3>
+    <div id="domain-rows"></div>
+  </div>
+  <div class="review-section">
+    <h3>Question Review</h3>
+    <div id="review-items"></div>
+  </div>
+  <div class="results-actions">
+    <button class="btn btn-secondary" id="btn-retry">Retry This Quiz</button>
+    <button class="btn btn-primary" id="btn-new">New Session</button>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+(function () {
+  'use strict';
+
+  const cfg = EXAM_CONFIG;
+  const questions = QUESTIONS.slice();
+  let currentIdx = 0;
+  let selected = null;
+  let answers = [];
+  let timerInterval = null;
+  let timerRemaining = 0;
+  let timerTotal = 0;
+  let globalStart = null;
+
+  const letters = ['A','B','C','D'];
+
+  // ── helpers ─────────────────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+  function domain(id) { return cfg.domains.find(d => d.id === id) || { label: '?', color: '#888', weight: 0 }; }
+  function diffColor(d) {
+    return d === 'foundational' ? '#10b981' : d === 'associate' ? '#f59e0b' : '#ef4444';
+  }
+  function formatTime(secs) {
+    const m = Math.floor(secs / 60), s = secs % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+  function pctColor(pct) {
+    return pct >= cfg.passingPct ? 'pass' : pct >= cfg.passingPct - 10 ? 'near' : 'fail';
+  }
+
+  // ── START SCREEN ─────────────────────────────────────────────
+  function initStart() {
+    $('start-title').textContent = cfg.title;
+    $('start-name').textContent = cfg.name;
+    $('meta-questions').textContent = questions.length + ' questions';
+    $('meta-timer').textContent = cfg.timerMinutes + ' min';
+    $('meta-passing').textContent = 'Pass: ' + cfg.passingPct + '%';
+
+    const chips = $('domain-chips');
+    chips.innerHTML = '';
+    cfg.domains.forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'domain-chip';
+      el.style.background = d.color;
+      el.textContent = d.label + ' · ' + d.weight + '%';
+      chips.appendChild(el);
+    });
+
+    document.title = cfg.name + ' Practice Quiz';
+    $('btn-start').onclick = startQuiz;
+  }
+
+  // ── QUIZ ─────────────────────────────────────────────────────
+  function startQuiz() {
+    currentIdx = 0;
+    answers = [];
+    globalStart = Date.now();
+    $('screen-start').style.display = 'none';
+    $('screen-results').style.display = 'none';
+    $('screen-quiz').style.display = 'block';
+    showQuestion();
+  }
+
+  function showQuestion() {
+    const q = questions[currentIdx];
+    selected = null;
+
+    $('q-num').textContent = 'Q' + (currentIdx + 1);
+    $('q-total').textContent = 'of ' + questions.length;
+    $('progress-fill').style.width = ((currentIdx / questions.length) * 100) + '%';
+
+    // meta tags
+    const dm = domain(q.domain);
+    $('q-meta').innerHTML =
+      '<span class="tag" style="background:' + dm.color + '20;color:' + dm.color + '">' + dm.label + '</span>' +
+      '<span class="tag" style="background:' + diffColor(q.difficulty) + '20;color:' + diffColor(q.difficulty) + '">' + q.difficulty + '</span>' +
+      (q.objective ? '<span class="tag" style="background:#334155;color:#94a3b8">Obj ' + q.objective + '</span>' : '');
+
+    $('q-text').textContent = q.question;
+
+    // options
+    const optEl = $('options');
+    optEl.innerHTML = '';
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'opt-btn';
+      btn.innerHTML = '<span class="opt-letter">' + letters[i] + '.</span>' + escHtml(opt);
+      btn.onclick = () => selectOption(i);
+      optEl.appendChild(btn);
+    });
+
+    $('btn-submit').disabled = true;
+    $('btn-submit').onclick = submitAnswer;
+    $('feedback-block').classList.add('hidden');
+    $('next-row').classList.add('hidden');
+
+    // timer
+    startTimer(q.timeLimitSeconds || 60);
+  }
+
+  function selectOption(i) {
+    selected = i;
+    document.querySelectorAll('.opt-btn').forEach((b, idx) => {
+      b.classList.toggle('selected', idx === i);
+    });
+    $('btn-submit').disabled = false;
+  }
+
+  function startTimer(secs) {
+    clearInterval(timerInterval);
+    timerRemaining = secs;
+    timerTotal = secs;
+    renderTimer();
+    timerInterval = setInterval(() => {
+      timerRemaining--;
+      renderTimer();
+      if (timerRemaining <= 0) {
+        clearInterval(timerInterval);
+        if (selected === null) selected = -1;
+        submitAnswer();
+      }
+    }, 1000);
+  }
+
+  function renderTimer() {
+    const pct = timerTotal > 0 ? timerRemaining / timerTotal : 0;
+    const el = $('timer-display');
+    const bar = $('timer-bar');
+    el.textContent = formatTime(timerRemaining);
+    bar.style.width = (pct * 100) + '%';
+    const color = pct < 0.25 ? '#ef4444' : pct < 0.5 ? '#f59e0b' : '#6366f1';
+    el.style.color = color;
+    bar.style.background = color;
+  }
+
+  function submitAnswer() {
+    clearInterval(timerInterval);
+    const q = questions[currentIdx];
+    const isCorrect = selected === q.correct;
+
+    answers.push({ questionIdx: currentIdx, selected, isCorrect, timeTaken: (q.timeLimitSeconds || 60) - timerRemaining });
+
+    // highlight options
+    document.querySelectorAll('.opt-btn').forEach((b, i) => {
+      b.disabled = true;
+      if (i === q.correct) b.classList.add('correct');
+      else if (i === selected && !isCorrect) b.classList.add('wrong');
+    });
+
+    // feedback
+    const fb = $('feedback-block');
+    fb.className = 'feedback ' + (isCorrect ? 'correct' : 'wrong');
+    fb.innerHTML =
+      '<div class="feedback-header">' +
+        (isCorrect ? '✓ Correct' : '✗ Incorrect — correct answer: ' + letters[q.correct]) +
+      '</div>' +
+      '<div class="feedback-exp">' + escHtml(q.explanation) + '</div>' +
+      (q.trick && q.trick_pattern !== 'none'
+        ? '<div class="trick-badge">⚡ Trap: ' + escHtml(q.trick_pattern.replace(/_/g,' ')) + '</div>'
+        : '');
+    fb.classList.remove('hidden');
+
+    $('btn-submit').style.display = 'none';
+    $('next-row').classList.remove('hidden');
+
+    const isLast = currentIdx === questions.length - 1;
+    $('btn-next').textContent = isLast ? 'See Results' : 'Next →';
+    $('btn-next').onclick = isLast ? showResults : () => { currentIdx++; showQuestion(); };
+  }
+
+  // ── RESULTS ──────────────────────────────────────────────────
+  function showResults() {
+    $('screen-quiz').style.display = 'none';
+    $('screen-results').style.display = 'block';
+    $('btn-submit').style.display = '';
+
+    const correct = answers.filter(a => a.isCorrect).length;
+    const total = questions.length;
+    const pct = Math.round((correct / total) * 100);
+    const pass = pct >= cfg.passingPct;
+    const near = pct >= cfg.passingPct - 10;
+    const elapsed = Math.round((Date.now() - globalStart) / 1000);
+
+    $('score-pct').textContent = pct + '%';
+    $('score-pct').className = 'score-pct ' + pctColor(pct);
+    $('score-sub').textContent = correct + ' / ' + total + ' correct · ' + formatTime(elapsed);
+    $('verdict').textContent = pass ? '✓ PASS' : '✗ FAIL — ' + cfg.passingPct + '% required';
+    $('verdict').className = 'verdict ' + (pass ? 'pass' : 'fail');
+
+    // domain breakdown
+    const domRows = $('domain-rows');
+    domRows.innerHTML = '';
+    cfg.domains.forEach(d => {
+      const dQs = questions.filter(q => q.domain === d.id);
+      const dCorrect = answers.filter(a => dQs.includes(questions[a.questionIdx]) && a.isCorrect).length;
+      const dPct = dQs.length ? Math.round((dCorrect / dQs.length) * 100) : 0;
+      domRows.innerHTML +=
+        '<div class="domain-row">' +
+          '<div class="domain-name">' + escHtml(d.label) + '</div>' +
+          '<div class="domain-bar-outer"><div class="domain-bar-inner" style="width:' + dPct + '%;background:' + d.color + '"></div></div>' +
+          '<div class="domain-score-label">' + dPct + '%</div>' +
+        '</div>';
+    });
+
+    // question review
+    const rev = $('review-items');
+    rev.innerHTML = '';
+    questions.forEach((q, i) => {
+      const a = answers[i];
+      const correct2 = a && a.isCorrect;
+      rev.innerHTML +=
+        '<div class="review-item ' + (correct2 ? 'correct' : 'wrong') + '">' +
+          '<div class="review-q">Q' + (i+1) + ' · ' + escHtml(domain(q.domain).label) + ' · Obj ' + (q.objective||'—') + '</div>' +
+          '<div class="review-answer">' +
+            (correct2 ? '✓ ' : '✗ ') +
+            escHtml(q.options[a ? a.selected : -1] || '(no answer)') +
+            (correct2 ? '' : ' → <strong>' + escHtml(q.options[q.correct]) + '</strong>') +
+          '</div>' +
+          '<div class="review-exp">' + escHtml(q.explanation) + '</div>' +
+        '</div>';
+    });
+
+    $('btn-retry').onclick = startQuiz;
+    $('btn-new').onclick = () => location.reload();
+  }
+
+  // ── utils ────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── boot ────────────────────────────────────────────────────
+  initStart();
+})();
+</script>
+</body>
+</html>

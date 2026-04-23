@@ -1,0 +1,422 @@
+[
+  {
+    "id": "nca-aiio-q001",
+    "cert": "nca-aiio",
+    "domain": 1,
+    "objective": "1.2",
+    "difficulty": "associate",
+    "question": "What is the PRIMARY architectural advantage of GPUs over CPUs for deep learning training?",
+    "options": [
+      "GPUs have faster individual processing cores than CPU cores",
+      "GPUs contain thousands of smaller cores optimized for massively parallel computation",
+      "GPUs have larger cache sizes than CPUs",
+      "GPUs use a simpler instruction set for matrix operations"
+    ],
+    "correct": 1,
+    "explanation": "GPUs are NOT faster per individual core — CPU cores run at higher clock speeds. The GPU advantage is massive parallelism: thousands of CUDA cores executing simultaneously on matrix math. Option A reverses the truth (CPU cores are individually faster). Option C is wrong (CPUs have more cache per core). Option D is wrong (both use complex ISAs; the advantage is architectural parallelism, not instruction simplicity).",
+    "trick": "Trap: 'faster cores' sounds plausible but reverses the truth. GPU advantage = parallel quantity, not per-core speed.",
+    "trick_pattern": "function_inversion",
+    "tags": ["gpu", "cpu", "architecture", "parallelism"],
+    "source": "Official study guide Obj 1.2",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q002",
+    "cert": "nca-aiio",
+    "domain": 1,
+    "objective": "1.5",
+    "difficulty": "associate",
+    "question": "NVIDIA TensorRT is BEST described as which of the following?",
+    "options": [
+      "A distributed training framework for multi-GPU systems",
+      "An inference optimization SDK that converts trained models into high-performance engines",
+      "A model serving platform that handles multiple framework backends and HTTP endpoints",
+      "A GPU monitoring library for tracking inference latency in production"
+    ],
+    "correct": 1,
+    "explanation": "TensorRT takes a trained model (from PyTorch, TensorFlow, ONNX) and produces an optimized 'engine' for a specific GPU via layer fusion, kernel auto-tuning, and quantization. It is NOT a serving platform (that's Triton Inference Server), NOT a training framework (it's inference-only), and NOT a monitoring tool (that's DCGM or Prometheus).",
+    "trick": "Trap: TensorRT and Triton are both inference-related. TensorRT = optimize; Triton = serve.",
+    "trick_pattern": "tool_confusion",
+    "tags": ["tensorrt", "inference", "optimization"],
+    "source": "Official study guide Obj 1.5",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q003",
+    "cert": "nca-aiio",
+    "domain": 1,
+    "objective": "1.3",
+    "difficulty": "associate",
+    "question": "Which 16-bit floating-point format preserves the same dynamic range as FP32 by keeping the same number of exponent bits?",
+    "options": [
+      "FP16 (IEEE half-precision)",
+      "BF16 (Brain Float 16)",
+      "FP8 E4M3",
+      "INT16"
+    ],
+    "correct": 1,
+    "explanation": "BF16 uses 8 exponent bits (same as FP32) but only 7 mantissa bits, giving it the same dynamic range as FP32 with less precision. FP16 uses 5 exponent bits and 10 mantissa bits — narrower dynamic range than FP32, which can cause overflow/underflow in training without loss scaling. FP8 E4M3 is 8-bit with 4 exponent bits. INT16 is an integer format, not floating-point.",
+    "trick": "Trap: FP16 and BF16 are both 16-bit, but their exponent/mantissa split differs significantly. BF16 = safe dynamic range.",
+    "trick_pattern": "terminology_precision",
+    "tags": ["precision", "fp16", "bf16", "mixed-precision"],
+    "source": "Official study guide Obj 1.3",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q004",
+    "cert": "nca-aiio",
+    "domain": 1,
+    "objective": "1.8",
+    "difficulty": "associate",
+    "question": "When MIG (Multi-Instance GPU) is enabled on an NVIDIA A100, what is the MAXIMUM number of compute instances that can be created?",
+    "options": [
+      "4",
+      "7",
+      "8",
+      "14"
+    ],
+    "correct": 1,
+    "explanation": "The A100 supports up to 7 MIG instances (using the 1g.10gb profile, giving 7 × 10 GB = 70 GB of the 80 GB total). The number 8 is a common trap — 8 GPUs per DGX, not 8 MIG instances. 4 and 14 are not valid maximums. H100 also supports 7 MIG instances maximum.",
+    "trick": "Trap: 8 GPUs per DGX node makes '8' feel correct. MIG max = 7, not 8.",
+    "trick_pattern": "magnitude_trap",
+    "tags": ["mig", "a100", "gpu-partitioning", "multi-tenancy"],
+    "source": "Official study guide Obj 1.8",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q005",
+    "cert": "nca-aiio",
+    "domain": 1,
+    "objective": "1.8",
+    "difficulty": "associate",
+    "question": "Which statement CORRECTLY differentiates NVIDIA Multi-Instance GPU (MIG) from Multi-Process Service (MPS)?",
+    "options": [
+      "MIG allows software-level time-slicing; MPS provides hardware isolation at the silicon level",
+      "MIG provides hardware-level partitioning with full memory and fault isolation; MPS enables multiple CUDA processes to share a GPU without hardware isolation",
+      "Both MIG and MPS provide identical levels of memory and fault isolation between tenants",
+      "MPS is available only on H100; MIG works on all GPU generations since Pascal"
+    ],
+    "correct": 1,
+    "explanation": "MIG partitions the GPU at the hardware level — dedicated SMs, HBM slices, L2 cache — providing true fault and memory isolation. A bug in one MIG instance cannot crash or read the memory of another. MPS is a software layer that lets multiple CUDA processes share one GPU context with reduced overhead, but there is NO memory isolation and NO fault isolation. Option A reverses the definitions. Option C is false. Option D reverses GPU support — MIG requires Ampere+; MPS works on Pascal+.",
+    "trick": "High-yield trap: the exam swaps MIG and MPS definitions. Anchor: MIG = Metal (hardware), MPS = Multiplexed Software.",
+    "trick_pattern": "terminology_precision",
+    "tags": ["mig", "mps", "isolation", "multi-tenancy"],
+    "source": "Official study guide Obj 1.8",
+    "timeLimitSeconds": 75
+  },
+  {
+    "id": "nca-aiio-q006",
+    "cert": "nca-aiio",
+    "domain": 1,
+    "objective": "1.5",
+    "difficulty": "associate",
+    "question": "An engineer wants to deploy trained models across multiple frameworks (PyTorch, TensorFlow, ONNX) behind a single HTTP/gRPC API with dynamic batching. Which NVIDIA tool BEST serves this need?",
+    "options": [
+      "TensorRT",
+      "CUDA",
+      "Triton Inference Server",
+      "DCGM"
+    ],
+    "correct": 2,
+    "explanation": "Triton Inference Server is designed exactly for this: serving models from multiple frameworks behind HTTP and gRPC endpoints with dynamic batching, concurrent model instances, and model ensemble support. TensorRT is an optimization library (converts models to engines, doesn't serve APIs). CUDA is a programming platform, not a serving tool. DCGM monitors GPU health, not model inference.",
+    "trick": "Trap: TensorRT is inference-related, but it optimizes — it doesn't serve. Triton serves.",
+    "trick_pattern": "tool_confusion",
+    "tags": ["triton", "inference-serving", "multi-framework"],
+    "source": "Official study guide Obj 1.5",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q007",
+    "cert": "nca-aiio",
+    "domain": 1,
+    "objective": "1.4",
+    "difficulty": "associate",
+    "question": "Which NVIDIA GPU architecture FIRST introduced native FP8 training support and the Transformer Engine?",
+    "options": [
+      "Ampere (A100)",
+      "Turing (T4)",
+      "Hopper (H100)",
+      "Volta (V100)"
+    ],
+    "correct": 2,
+    "explanation": "FP8 precision and the Transformer Engine (which automatically selects FP8/BF16 precision per layer) were introduced in the Hopper architecture (H100). The A100 (Ampere) introduced BF16 support and MIG but not FP8. T4 (Turing) and V100 (Volta) are older architectures without these features.",
+    "trick": "Trap: FP8 is associated with 'precision reduction' which also exists in A100, but A100 stops at INT8/FP16/BF16. FP8 = Hopper only.",
+    "trick_pattern": "generation_mixup",
+    "tags": ["fp8", "hopper", "h100", "transformer-engine", "precision"],
+    "source": "Official study guide Obj 1.4",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q008",
+    "cert": "nca-aiio",
+    "domain": 2,
+    "objective": "2.1",
+    "difficulty": "associate",
+    "question": "In a DGX H100 system, what is the PRIMARY function of NVSwitch?",
+    "options": [
+      "Providing PCIe connectivity between CPU and all 8 GPUs",
+      "Enabling all-to-all NVLink connectivity between all 8 GPUs simultaneously at full bandwidth",
+      "Routing InfiniBand traffic between the DGX node and external cluster switches",
+      "Managing power distribution to the GPU modules"
+    ],
+    "correct": 1,
+    "explanation": "NVSwitch is a dedicated switch chip that creates an all-to-all NVLink mesh between all 8 GPUs. Without NVSwitch, each GPU can only directly connect to a few others (limited by NVLink lanes per GPU). With 4× NVSwitch chips in the DGX H100, any GPU can communicate with any other GPU at full 900 GB/s NVLink 4.0 bandwidth. NVSwitch does NOT handle PCIe (that's a separate root complex), InfiniBand (that's ConnectX-7 NICs), or power management (that's the PDU/VRM).",
+    "trick": "Trap: NVSwitch sounds like a network switch handling external traffic — it's purely intra-node NVLink fabric.",
+    "trick_pattern": "terminology_precision",
+    "tags": ["nvswitch", "nvlink", "dgx", "interconnect", "intra-node"],
+    "source": "Official study guide Obj 2.1 + DGX H100 datasheet",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q009",
+    "cert": "nca-aiio",
+    "domain": 2,
+    "objective": "2.3",
+    "difficulty": "associate",
+    "question": "For an AI training cluster requiring the LOWEST latency and HIGHEST bandwidth for GPU-to-GPU communication ACROSS nodes, which interconnect technology is MOST appropriate?",
+    "options": [
+      "100 GbE Ethernet with TCP/IP",
+      "RoCE over 100 GbE with ECN-based congestion control",
+      "InfiniBand NDR with GPUDirect RDMA",
+      "PCIe Gen 5 with peer-to-peer DMA"
+    ],
+    "correct": 2,
+    "explanation": "InfiniBand NDR (400 Gb/s) with GPUDirect RDMA is the gold standard for GPU cluster inter-node communication: sub-microsecond latency, highest bandwidth, RDMA-native (no CPU involvement in data path). TCP/IP Ethernet has the highest latency (kernel network stack). RoCE provides RDMA on Ethernet at lower cost but with higher latency than native IB. PCIe Gen 5 P2P only works within a single node (intra-node), not across nodes.",
+    "trick": "Trap: Both IB and RoCE offer RDMA. The question specifies 'lowest latency AND highest bandwidth' — that's InfiniBand, not RoCE.",
+    "trick_pattern": "protocol_mixup",
+    "tags": ["infiniband", "rdma", "gpudirect", "inter-node", "networking"],
+    "source": "Official study guide Obj 2.3",
+    "timeLimitSeconds": 75
+  },
+  {
+    "id": "nca-aiio-q010",
+    "cert": "nca-aiio",
+    "domain": 2,
+    "objective": "2.4",
+    "difficulty": "associate",
+    "question": "GPUDirect RDMA enables which of the following data transfer paths?",
+    "options": [
+      "GPU memory → CPU cache → host DRAM → NIC → network",
+      "NIC → host DRAM → CPU → GPU memory",
+      "NIC ↔ GPU memory directly, bypassing CPU and host DRAM",
+      "GPU memory → NVLink → another GPU → NIC → network"
+    ],
+    "correct": 2,
+    "explanation": "GPUDirect RDMA allows a network interface card (like a Mellanox/NVIDIA ConnectX) to DMA data directly from or to GPU HBM memory without involving the CPU or copying through host DRAM. This eliminates two copies (GPU→host DRAM, host DRAM→NIC) and removes the CPU from the critical path, significantly reducing latency and freeing CPU cycles. Options A and B show the old path that GPUDirect RDMA eliminates. Option D describes NVLink + another GPU, which is a different path.",
+    "trick": "Trap: 'host DRAM' appears in several options. The key word in GPUDirect RDMA is 'direct' — it bypasses host DRAM entirely.",
+    "trick_pattern": "function_inversion",
+    "tags": ["gpudirect", "rdma", "infiniband", "dma", "data-path"],
+    "source": "Official study guide Obj 2.4",
+    "timeLimitSeconds": 75
+  },
+  {
+    "id": "nca-aiio-q011",
+    "cert": "nca-aiio",
+    "domain": 2,
+    "objective": "2.5",
+    "difficulty": "associate",
+    "question": "An NVIDIA BlueField DPU is designed to offload which category of workloads FROM the host CPU?",
+    "options": [
+      "Deep learning model training and inference acceleration",
+      "GPU memory allocation and CUDA context management",
+      "Networking, storage, and security infrastructure tasks",
+      "Video encoding and graphics rendering"
+    ],
+    "correct": 2,
+    "explanation": "The BlueField DPU (Data Processing Unit) offloads infrastructure tasks: networking (firewall, QoS, routing, RDMA processing), storage virtualization (NVMe-oF, iSCSI), and security (TLS/IPSec encryption). This frees the host CPU for application workloads. DPU does NOT handle AI training or inference (that's the GPU), does NOT manage GPU memory (that's the CUDA driver and GPU hardware), and is not for graphics/video (that's an NVENC/GPU task).",
+    "trick": "Trap: 'DPU' and 'GPU' are one letter apart. DPU = infrastructure offload (network/storage/security). GPU = compute.",
+    "trick_pattern": "terminology_precision",
+    "tags": ["bluefield", "dpu", "smartnic", "offload", "infrastructure"],
+    "source": "Official study guide Obj 2.5",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q012",
+    "cert": "nca-aiio",
+    "domain": 2,
+    "objective": "2.2",
+    "difficulty": "associate",
+    "question": "The NVLink 4.0 interconnect used in H100-based systems provides what total bidirectional bandwidth between GPUs?",
+    "options": [
+      "300 GB/s",
+      "600 GB/s",
+      "900 GB/s",
+      "1200 GB/s"
+    ],
+    "correct": 2,
+    "explanation": "NVLink 4.0 (H100/Hopper) provides 900 GB/s total bidirectional bandwidth. NVLink 3.0 (A100/Ampere) provided 600 GB/s. 300 GB/s is NVLink 2.0 (V100). 1200 GB/s is not a current NVIDIA product spec. The bandwidth increase per generation is roughly 1.5×.",
+    "trick": "Trap: 600 GB/s is the correct answer for A100 (NVLink 3.0), not H100. Generation matters.",
+    "trick_pattern": "generation_mixup",
+    "tags": ["nvlink", "h100", "bandwidth", "interconnect"],
+    "source": "Official study guide Obj 2.2 + H100 datasheet",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q013",
+    "cert": "nca-aiio",
+    "domain": 2,
+    "objective": "2.6",
+    "difficulty": "associate",
+    "question": "For active AI training workloads that need to stream large datasets to multiple GPUs simultaneously, which storage characteristic is MOST critical?",
+    "options": [
+      "High random IOPS for sub-millisecond access to small files",
+      "High sequential read throughput measured in GB/s",
+      "Low latency for single-threaded read operations",
+      "High write IOPS for frequent small checkpoint saves"
+    ],
+    "correct": 1,
+    "explanation": "AI training reads large datasets (images, text tokens, audio frames) sequentially and repeatedly from storage to feed the GPU data pipeline. The bottleneck is sequential read throughput (GB/s). Random IOPS matter for database workloads, not sequential dataset streaming. Single-threaded latency is irrelevant when you need parallel multi-threaded throughput. Checkpoint writes are large and sequential, but less frequent than reads — they're a secondary concern.",
+    "trick": "Trap: 'IOPS' sounds like a performance metric for storage, but AI training cares about throughput (GB/s), not random IOPS.",
+    "trick_pattern": "scope_confusion",
+    "tags": ["storage", "training", "throughput", "lustre", "gpfs"],
+    "source": "Official study guide Obj 2.6",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q014",
+    "cert": "nca-aiio",
+    "domain": 3,
+    "objective": "3.4",
+    "difficulty": "associate",
+    "question": "NVIDIA DCGM (Data Center GPU Manager) is PRIMARILY used for which of the following?",
+    "options": [
+      "Optimizing GPU kernel execution for maximum throughput",
+      "Monitoring GPU health, telemetry, and running diagnostics across a data center",
+      "Scheduling GPU jobs across a multi-node cluster",
+      "Partitioning a single GPU into multiple isolated compute instances"
+    ],
+    "correct": 1,
+    "explanation": "DCGM is a cluster-wide GPU management library and tool that collects GPU health metrics (utilization, temperature, power, ECC errors, NVLink errors, memory bandwidth) and runs diagnostics. It integrates with Prometheus and Grafana for dashboards. DCGM does NOT optimize kernels (that's Nsight Compute), does NOT schedule jobs (that's Slurm or Kubernetes), and does NOT partition GPUs (that's MIG).",
+    "trick": "Common trap: nvidia-smi is the per-GPU CLI; DCGM is for cluster-scale. Never use nvidia-smi for fleet monitoring.",
+    "trick_pattern": "tool_confusion",
+    "tags": ["dcgm", "monitoring", "telemetry", "gpu-management"],
+    "source": "Official study guide Obj 3.4",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q015",
+    "cert": "nca-aiio",
+    "domain": 3,
+    "objective": "3.3",
+    "difficulty": "associate",
+    "question": "For scheduling large batch AI training jobs on an HPC cluster with strict resource accounting and job queuing, which workload manager is MOST commonly used?",
+    "options": [
+      "Kubernetes with the NVIDIA GPU Operator",
+      "Apache Mesos with GPU isolation plugins",
+      "Slurm (Simple Linux Utility for Resource Management)",
+      "NVIDIA Base Command Platform used directly as the job scheduler"
+    ],
+    "correct": 2,
+    "explanation": "Slurm is the dominant HPC workload manager for batch AI training: it provides queue management, fairshare scheduling, resource accounting, and GPU allocation via GRES. Kubernetes is primarily for container orchestration and inference serving — not HPC-style batch training. Apache Mesos is largely deprecated in this space. Base Command Platform sits on TOP of Slurm/Kubernetes — it's a management layer, not a replacement scheduler.",
+    "trick": "Trap: Base Command Platform exists and is NVIDIA-native, so it seems like the correct answer. But BCP uses Slurm under the hood — it doesn't replace it.",
+    "trick_pattern": "role_confusion",
+    "tags": ["slurm", "hpc", "job-scheduling", "batch-training"],
+    "source": "Official study guide Obj 3.3",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q016",
+    "cert": "nca-aiio",
+    "domain": 3,
+    "objective": "3.6",
+    "difficulty": "associate",
+    "question": "What is the PRIMARY purpose of the BMC (Baseboard Management Controller) in a DGX server?",
+    "options": [
+      "Managing NVLink topology and GPU-to-GPU bandwidth allocation",
+      "Providing out-of-band server management including power control, sensor monitoring, and console access, independent of the OS",
+      "Coordinating DCGM health checks and GPU diagnostics",
+      "Load balancing InfiniBand traffic across multiple network ports"
+    ],
+    "correct": 1,
+    "explanation": "The BMC is an embedded microcontroller that operates independently of the CPU and OS. It provides out-of-band management: remote power on/off/reset (even when the OS is hung), hardware sensor monitoring (temperatures, fan speeds, voltage), serial-over-LAN console access, and firmware updates via IPMI/Redfish. BMC does NOT manage NVLink (that's NVSwitch hardware), does NOT run DCGM (that's OS-level software), and does NOT handle InfiniBand routing (that's the IB switch).",
+    "trick": "Trap: DCGM also monitors GPU temperatures, so it seems similar. Key difference: BMC is hardware-level and OS-independent; DCGM requires the OS and drivers to be running.",
+    "trick_pattern": "tool_confusion",
+    "tags": ["bmc", "out-of-band", "management", "ipmi", "redfish"],
+    "source": "Official study guide Obj 3.6",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q017",
+    "cert": "nca-aiio",
+    "domain": 3,
+    "objective": "3.1",
+    "difficulty": "associate",
+    "question": "NVIDIA Base Command Platform PRIMARILY provides which capability?",
+    "options": [
+      "GPU driver management and BIOS firmware updates for individual servers",
+      "An end-to-end AI training platform with job orchestration, cluster management, and data lifecycle management",
+      "A container registry for storing and distributing NVIDIA NGC containers",
+      "Direct replacement for Slurm with built-in GPU-aware job scheduling"
+    ],
+    "correct": 1,
+    "explanation": "Base Command Platform (BCP) is an AI training management system that provides multi-tenant job submission, cluster resource management, dataset versioning, and NGC catalog integration — all as a unified platform for operating shared GPU clusters. It is NOT a driver/firmware tool (that's BMC + NVIDIA Update Manager), NOT a container registry (that's NGC itself), and NOT a replacement for Slurm (BCP adds an abstraction layer on top of Slurm/Kubernetes; it doesn't replace the underlying scheduler).",
+    "trick": "Trap: BCP uses Slurm internally, but the relationship is additive — BCP is the platform layer ON TOP of Slurm, not a replacement for it.",
+    "trick_pattern": "role_confusion",
+    "tags": ["base-command", "platform", "job-orchestration", "multi-tenant"],
+    "source": "Official study guide Obj 3.1",
+    "timeLimitSeconds": 60
+  },
+  {
+    "id": "nca-aiio-q018",
+    "cert": "nca-aiio",
+    "domain": 2,
+    "objective": "2.3",
+    "difficulty": "associate",
+    "question": "What does SHARP (Scalable Hierarchical Aggregation and Reduction Protocol) do in an InfiniBand AI cluster?",
+    "options": [
+      "Encrypts all inter-node data transfers using hardware AES acceleration",
+      "Performs MPI AllReduce operations inside the InfiniBand switch ASICs rather than at the compute endpoints",
+      "Compresses gradient tensors before transmission to reduce required network bandwidth",
+      "Balances GPU workloads across heterogeneous hardware types in the cluster"
+    ],
+    "correct": 1,
+    "explanation": "SHARP offloads AllReduce collective operations (the dominant communication pattern in distributed training) INTO the InfiniBand switch fabric. Instead of each GPU sending gradients to a parameter server or ring-allreduce peer, the aggregation happens in the switches themselves. This reduces both GPU/CPU overhead and total data transmitted on the fabric. SHARP is NOT encryption (that's IPSec or TLS), NOT gradient compression (a separate algorithmic technique), and NOT load balancing (Slurm/DCGM handle that).",
+    "trick": "Trap: 'reducing bandwidth' in option C sounds like SHARP. SHARP reduces bandwidth as a side effect, but its mechanism is in-network aggregation, not compression.",
+    "trick_pattern": "function_inversion",
+    "tags": ["sharp", "infiniband", "allreduce", "collective", "in-network-computing"],
+    "source": "Official study guide Obj 2.3 + Quantum-2 documentation",
+    "timeLimitSeconds": 75
+  },
+  {
+    "id": "nca-aiio-q019",
+    "cert": "nca-aiio",
+    "domain": 1,
+    "objective": "1.2",
+    "difficulty": "foundational",
+    "question": "In the CUDA execution model, how many threads execute the same instruction simultaneously in a single warp?",
+    "options": [
+      "16",
+      "32",
+      "64",
+      "128"
+    ],
+    "correct": 1,
+    "explanation": "A CUDA warp consists of 32 threads that execute the same instruction simultaneously under the SIMT (Single Instruction Multiple Threads) model. If threads in a warp diverge (different branches), the GPU serializes the divergent paths, reducing efficiency. 64 and 128 are common wrong answers (they match typical thread block sizes used in practice, but those are thread counts per block, not per warp). 16 is half a warp.",
+    "trick": "Trap: thread blocks of 64 or 128 threads are common in CUDA code. Don't confuse block size with warp size.",
+    "trick_pattern": "magnitude_trap",
+    "tags": ["cuda", "warp", "simt", "threads", "execution-model"],
+    "source": "Official study guide Obj 1.2 + CUDA Programming Guide",
+    "timeLimitSeconds": 45
+  },
+  {
+    "id": "nca-aiio-q020",
+    "cert": "nca-aiio",
+    "domain": 3,
+    "objective": "3.2",
+    "difficulty": "associate",
+    "question": "The NVIDIA GPU Operator in a Kubernetes cluster automates which of the following?",
+    "options": [
+      "Slurm job queue management for GPU compute nodes",
+      "Manual GPU driver installation on each Kubernetes worker node",
+      "Deployment and lifecycle management of GPU drivers, container runtime, device plugin, and DCGM exporter across all Kubernetes nodes",
+      "Network topology discovery and InfiniBand switch configuration"
+    ],
+    "correct": 2,
+    "explanation": "The NVIDIA GPU Operator is a Kubernetes operator that automates the entire GPU software stack on Kubernetes nodes: GPU drivers (via driver container), container runtime (nvidia-container-runtime), device plugin (exposes nvidia.com/gpu resource), and DCGM exporter (for GPU metrics in Prometheus). Without GPU Operator, each node would require manual driver installation and configuration. It does NOT manage Slurm (Slurm is separate from Kubernetes), does NOT involve InfiniBand topology (that's the network infrastructure).",
+    "trick": "Trap: Option B describes what you'd have to do WITHOUT the GPU Operator. The GPU Operator eliminates manual installation.",
+    "trick_pattern": "function_inversion",
+    "tags": ["kubernetes", "gpu-operator", "device-plugin", "dcgm", "k8s"],
+    "source": "Official study guide Obj 3.2 + GPU Operator documentation",
+    "timeLimitSeconds": 60
+  }
+]

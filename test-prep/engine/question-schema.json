@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TestPrep Question",
+  "description": "Standard question format for all certifications in the test-prep skill",
+  "type": "object",
+  "required": ["id", "cert", "domain", "objective", "difficulty", "question", "options", "correct", "explanation", "trick_pattern"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique ID: <cert-code>-q<NNN>  e.g. nca-aiio-q001",
+      "pattern": "^[a-z0-9-]+-q[0-9]{3}$"
+    },
+    "cert": {
+      "type": "string",
+      "description": "Cert folder name e.g. 'nca-aiio', 'aws-saa', 'cissp'"
+    },
+    "domain": {
+      "type": "integer",
+      "description": "Domain number as defined in blueprint.md",
+      "minimum": 1
+    },
+    "objective": {
+      "type": "string",
+      "description": "Objective reference e.g. '1.3', '2.7'",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["foundational", "associate", "professional"],
+      "description": "Difficulty mapped to cert level nomenclature"
+    },
+    "question": {
+      "type": "string",
+      "description": "Full question text. Should end with a question mark."
+    },
+    "options": {
+      "type": "array",
+      "description": "Exactly 4 answer options. Order matters — 'correct' indexes into this array.",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "type": "string" }
+    },
+    "correct": {
+      "type": "integer",
+      "description": "0-based index of the correct option in the options array",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "explanation": {
+      "type": "string",
+      "description": "Why the correct answer is right AND why each wrong option is wrong. Educational, not just confirmatory."
+    },
+    "trick": {
+      "type": "string",
+      "description": "Human-readable description of the distractor trap used in this question. Empty string if none."
+    },
+    "trick_pattern": {
+      "type": "string",
+      "enum": [
+        "terminology_precision",
+        "tool_confusion",
+        "generation_mixup",
+        "scope_confusion",
+        "protocol_mixup",
+        "role_confusion",
+        "magnitude_trap",
+        "function_inversion",
+        "none"
+      ],
+      "description": "Which distractor pattern this question exercises"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Topic tags for filtering e.g. ['gpu', 'nvlink', 'interconnect']"
+    },
+    "source": {
+      "type": "string",
+      "description": "Where this question content came from e.g. 'Official study guide Obj 2.3'"
+    },
+    "timeLimitSeconds": {
+      "type": "integer",
+      "description": "Suggested per-question timer. Defaults: foundational=30, associate=60, professional=90",
+      "minimum": 15,
+      "maximum": 180
+    }
+  },
+  "examples": [
+    {
+      "id": "nca-aiio-q001",
+      "cert": "nca-aiio",
+      "domain": 1,
+      "objective": "1.1",
+      "difficulty": "associate",
+      "question": "What is the PRIMARY architectural advantage of GPUs over CPUs for deep learning training?",
+      "options": [
+        "GPUs have faster individual processing cores than CPU cores",
+        "GPUs contain thousands of smaller cores optimized for massively parallel computation",
+        "GPUs have larger cache sizes than CPUs",
+        "GPUs use a simpler instruction set for matrix operations"
+      ],
+      "correct": 1,
+      "explanation": "GPUs are NOT faster per individual core — CPU cores run at higher clock speeds. The GPU advantage is massive parallelism: thousands of simpler cores executing simultaneously, perfectly suited to the matrix math of deep learning. Option C is wrong: CPUs actually have larger per-core cache. Option D is wrong: both use complex instruction sets; the advantage is architectural, not ISA-based.",
+      "trick": "Trap: 'faster cores' sounds plausible but reverses the truth. CPU cores are individually faster. GPU advantage = parallel quantity, not per-core speed.",
+      "trick_pattern": "function_inversion",
+      "tags": ["gpu", "architecture", "fundamentals"],
+      "source": "Official study guide Obj 1.1",
+      "timeLimitSeconds": 60
+    }
+  ]
+}
