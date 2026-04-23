@@ -315,7 +315,7 @@ const QUESTIONS = [
   'use strict';
 
   const cfg = EXAM_CONFIG;
-  const questions = QUESTIONS.slice();
+  let questions = [];
   let currentIdx = 0;
   let selected = null;
   let answers = [];
@@ -328,6 +328,13 @@ const QUESTIONS = [
 
   // ── helpers ─────────────────────────────────────────────────
   function $(id) { return document.getElementById(id); }
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
   function domain(id) { return cfg.domains.find(d => d.id === id) || { label: '?', color: '#888', weight: 0 }; }
   function diffColor(d) {
     return d === 'foundational' ? '#10b981' : d === 'associate' ? '#f59e0b' : '#ef4444';
@@ -364,6 +371,7 @@ const QUESTIONS = [
 
   // ── QUIZ ─────────────────────────────────────────────────────
   function startQuiz() {
+    questions = shuffle(QUESTIONS.slice());
     currentIdx = 0;
     answers = [];
     globalStart = Date.now();
