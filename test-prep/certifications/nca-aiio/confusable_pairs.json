@@ -45,5 +45,17 @@
 
   { "pair_id": "mig_instances", "concept_a": "mig", "concept_b": "dgx_system",
     "key_distinction": "MIG max instances on A100/H100 = 7. DGX nodes have 8 GPUs. Never confuse these two 'eights-adjacent' numbers.",
-    "mnemonic_id": "mig_instances" }
+    "mnemonic_id": "mig_instances" },
+
+  { "pair_id": "training_inference", "concept_a": "ai_training", "concept_b": "ai_inference",
+    "key_distinction": "Training = massive sustained compute (backprop, gradient updates, hours/days, GPU-intensive). Inference = lightweight per-request (milliseconds, often CPU-tolerable). Scale ≠ per-job intensity. Questions always specify a direction — read it carefully.",
+    "mnemonic_id": "training_inference" },
+
+  { "pair_id": "onprem_cloud", "concept_a": "on_premises", "concept_b": "cloud_infrastructure",
+    "key_distinction": "On-prem wins: data sovereignty, predictable cost for sustained workloads, no egress fees. Cloud wins: no CapEx, instant elastic scaling, pay-as-you-go. Exam questions ask about ONE specific advantage — read the direction.",
+    "mnemonic_id": "onprem_cloud" },
+
+  { "pair_id": "ai_ml_dl_hierarchy", "concept_a": "artificial_intelligence", "concept_b": "deep_learning",
+    "key_distinction": "DL ⊂ ML ⊂ AI. Deep Learning is the most specific (inside ML, inside AI). Options will flip this — always draw the concentric circles: AI is the outer ring, ML is middle, DL is the innermost.",
+    "mnemonic_id": "ai_ml_dl_hierarchy" }
 ]

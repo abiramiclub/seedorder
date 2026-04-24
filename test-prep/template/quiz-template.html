@@ -240,7 +240,7 @@ const QUESTIONS = [
   'use strict';
 
   const cfg = EXAM_CONFIG;
-  const questions = QUESTIONS.slice();
+  const questions = QUESTIONS.slice().sort(() => Math.random() - 0.5);
   let currentIdx = 0;
   let selected = null;
   let answers = [];

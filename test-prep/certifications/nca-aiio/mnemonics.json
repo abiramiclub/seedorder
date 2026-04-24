@@ -46,5 +46,17 @@
   "mig_instances": {
     "mnemonic": "7 MIG instances, 8 GPUs per DGX. The exam will use both numbers. Anchor: MIG max = SEVEN (lucky number, not eight).",
     "visual_cue": "A100 has 7 maximum MIG slices because 7 × ~10 GB ≈ 70 GB of the 80 GB total. The remaining 10 GB is for management overhead."
+  },
+  "training_inference": {
+    "mnemonic": "Training = the gym (months of hard work building muscle). Inference = the race (seconds of performance using what you built).",
+    "visual_cue": "Training is a marathon runner doing months of daily workouts. Inference is the same runner crossing the finish line in under 3 hours. Same body, very different activity."
+  },
+  "onprem_cloud": {
+    "mnemonic": "On-prem = owning your house (big upfront cost, full control, predictable bills). Cloud = renting (no down payment, flexible, pay per month but costs rise if you stay forever).",
+    "visual_cue": "On-prem is a data center you own — you pay for the building, servers, and power regardless. Cloud is AWS/Azure — you pay only for what you use, but the meter is always running."
+  },
+  "ai_ml_dl_hierarchy": {
+    "mnemonic": "Three Russian nesting dolls: DL lives inside ML, which lives inside AI. The outermost doll is AI. If you open it you find ML. Open ML and you find DL.",
+    "visual_cue": "Draw three concentric circles: AI (outer), ML (middle), DL (inner). Every DL model IS an ML model IS an AI system. Not every AI is ML. Not every ML is DL."
   }
 }

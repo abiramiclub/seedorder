@@ -41,7 +41,8 @@ description: >
 
 | Cert | Folder | Questions | Status |
 |------|--------|-----------|--------|
-| NVIDIA NCA-AIIO | `certifications/nca-aiio/` | 20 (50 target) | Active |
+| NVIDIA NCA-AIIO | `certifications/nca-aiio/` | 30 (50 target) | Active |
+| IAPP AIGP | `certifications/iapp-aigp/` | — | Planned — run new-cert protocol |
 
 ### Step 2 — Ingest materials (if provided)
 
@@ -148,6 +149,40 @@ Note: `correct` is a **0-based index** into `options`.
 
 ---
 
+## Session Modes
+
+When delivering a quiz, offer the user a choice of mode. Gate feedback and timer behaviour on the selected mode.
+
+| Mode | Feedback | Timer | Questions | When to use |
+|------|----------|-------|-----------|-------------|
+| **Learning** | Immediate per-question | Per-question (60 s default) | All, shuffled | Default study mode |
+| **Exam Simulation** | None until end | Single 60-min session countdown | All, shuffled | Realistic exam rehearsal |
+| **Targeted Drill** | Immediate | Per-question | Filtered by domain/concept user picks | Weak-area remediation |
+| **Spaced Review** | Immediate | Per-question | Concepts not seen in 3+ days (from localStorage) | Retention maintenance |
+| **Diagnostic** | None during, full debrief at end | Per-question | 20 Q domain-weighted sample | First session baseline |
+
+**Mode selection prompt** — before starting, ask:
+> "Which mode? Learning (feedback after each Q), Exam Sim (no feedback, 60 min), Targeted Drill (pick a domain), Spaced Review (due concepts), or Diagnostic (20 Q baseline)?"
+
+---
+
+## Distractor Patterns
+
+Every question must have a `trick_pattern` field. Use one of these 8 named patterns:
+
+| Pattern | Definition | Example |
+|---------|-----------|---------|
+| `terminology_precision` | Two terms look similar but mean different things | FP16 vs BF16 — both 16-bit, different exponent widths |
+| `tool_confusion` | Correct tool category but wrong specific tool | "Use TensorRT to serve the model" (it optimizes; Triton serves) |
+| `generation_mixup` | Right feature, wrong GPU generation | FP8 attributed to A100 (it's H100/Hopper) |
+| `scope_confusion` | Right concept, wrong scope (intra vs inter, node vs cluster) | NVSwitch described as handling inter-node traffic (it's intra-node only) |
+| `role_confusion` | Two tools with overlapping domains; wrong one assigned the role | "Base Command replaces Slurm" (it sits on top; doesn't replace) |
+| `function_inversion` | Swaps cause/effect or reverses a definition | "GPUs are faster per core than CPUs" (reverses the truth) |
+| `magnitude_trap` | Uses a plausible-but-wrong number near the real one | 8 MIG instances (real answer: 7; 8 = GPUs per DGX) |
+| `false_equivalence` | Implies two distinct things are the same | "MIG and MPS both provide hardware isolation" |
+
+---
+
 ## Adding a New Certification
 
 See `scripts/new-cert.md` for the full protocol.
@@ -166,8 +201,13 @@ This skill is designed to run on Claude.ai Free:
 - No API keys required (web search uses Claude's built-in tool when available)
 - Skill package size target: < 5 MB (PDFs excluded from the .skill zip)
 
-**To install on a second Claude.ai account:**
-1. Zip the `test-prep/` folder → rename to `test-prep.skill`
-2. In Claude.ai: Settings → Projects → New Project → Upload Files → add all .md and .html files as project knowledge
-3. Paste the `description` field above as custom instructions
-4. Type "quiz me on NCA-AIIO" to verify
+**To share this skill with another Claude.ai account:**
+1. Zip the `test-prep/` folder → rename the zip to `test-prep.skill`
+2. In Claude.ai: **Settings → Capabilities → Skills → Upload** → select `test-prep.skill`
+3. The skill will appear in the skill panel — no custom instructions needed
+4. Type "quiz me on NCA-AIIO" to verify it loaded
+
+**Alternative (Project Knowledge path):**
+1. In Claude.ai: New Project → Add to Project Knowledge → upload all `.md` and `.html` files
+2. Paste the `description` frontmatter block as the project's Custom Instructions
+3. Type "quiz me on NCA-AIIO" to verify
